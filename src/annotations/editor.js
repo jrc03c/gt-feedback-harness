@@ -363,12 +363,6 @@ export function createEditor({
     ) {
       deleteSelected()
       event.preventDefault()
-    } else if (
-      event.key.toLowerCase() === "z" &&
-      (event.ctrlKey || event.metaKey)
-    ) {
-      undo()
-      event.preventDefault()
     }
   }
 
@@ -383,9 +377,17 @@ export function createEditor({
 
   function undo() {
     flushText()
-    const previous = history.undo()
-    if (!previous) return
-    state = previous
+    restore(history.undo())
+  }
+
+  function redo() {
+    flushText()
+    restore(history.redo())
+  }
+
+  function restore(next) {
+    if (!next) return
+    state = next
     selection = []
     draft = null
     drag = null
@@ -416,6 +418,7 @@ export function createEditor({
     getSelectedIds: () => [...selection],
     deleteSelected,
     undo,
+    redo,
     destroy() {
       container.removeEventListener("keydown", onKeyDown)
       container.innerHTML = ""

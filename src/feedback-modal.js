@@ -21,6 +21,7 @@ const ICONS = {
   highlight: "&#x1F58D;",
   callout: "&#x1F4AC;",
   undo: "&#x21A9;",
+  redo: "&#x21AA;",
   delete: "&#x1F5D1;",
 }
 
@@ -37,6 +38,8 @@ export function openFeedbackModal({
   const overlay = document.createElement("div")
   overlay.className = "harness-modal"
   overlay.setAttribute("data-harness-chrome", "")
+  // Focusable so keyboard shortcuts reach its keydown listener.
+  overlay.tabIndex = -1
   overlay.innerHTML = `
     <div class="harness-modal-dialog" role="dialog" aria-modal="true" aria-label="Give feedback">
       <div class="harness-toolbar">
@@ -50,6 +53,7 @@ export function openFeedbackModal({
         ).join("")}
         <span class="harness-toolbar-spacer"></span>
         ${iconButton({ attr: "data-action", key: "undo", label: "Undo" })}
+        ${iconButton({ attr: "data-action", key: "redo", label: "Redo" })}
         ${iconButton({ attr: "data-action", key: "delete", label: "Delete" })}
       </div>
       <p class="harness-hint"></p>
@@ -101,6 +105,9 @@ export function openFeedbackModal({
     .querySelector('[data-action="undo"]')
     .addEventListener("click", () => editor.undo())
   overlay
+    .querySelector('[data-action="redo"]')
+    .addEventListener("click", () => editor.redo())
+  overlay
     .querySelector('[data-action="delete"]')
     .addEventListener("click", () => editor.deleteSelected())
   const cancelButton = overlay.querySelector('[data-action="cancel"]')
@@ -129,6 +136,22 @@ export function openFeedbackModal({
     }
   })
 
+  function isTextEntry(target) {
+    return target.tagName === "TEXTAREA" || target.isContentEditable
+  }
+
+  function onKeyDown(event) {
+    if (!(event.ctrlKey || event.metaKey) || isTextEntry(event.target)) return
+    const key = event.key.toLowerCase()
+    if (key === "z" && !event.shiftKey) editor.undo()
+    else if ((key === "z" && event.shiftKey) || key === "y") editor.redo()
+    else return
+    event.preventDefault()
+  }
+
+  overlay.addEventListener("keydown", onKeyDown)
+
   setTool("pen")
+  overlay.focus({ preventScroll: true })
   return { close, editor, element: overlay }
 }

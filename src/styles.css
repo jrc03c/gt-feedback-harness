@@ -138,6 +138,10 @@ body {
   font-family: system-ui, sans-serif;
 }
 
+.harness-modal:focus {
+  outline: none;
+}
+
 .harness-modal-dialog {
   background: #fff;
   color: var(--harness-text);

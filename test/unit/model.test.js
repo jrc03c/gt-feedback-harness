@@ -261,6 +261,43 @@ test("history undoes to the previous snapshot and stops at the initial state", (
   assert.equal(history.undo(), null)
 })
 
+test("history redoes undone states and push clears the redo stack", () => {
+  const history = createHistory([])
+  assert.equal(history.canUndo, false)
+  assert.equal(history.canRedo, false)
+  assert.equal(history.redo(), null)
+  history.push([{ id: "a" }])
+  history.push([{ id: "a" }, { id: "b" }])
+  assert.equal(history.canUndo, true)
+  assert.deepEqual(history.undo(), [{ id: "a" }])
+  assert.deepEqual(history.undo(), [])
+  assert.equal(history.canUndo, false)
+  assert.equal(history.canRedo, true)
+  assert.deepEqual(history.redo(), [{ id: "a" }])
+  assert.deepEqual(history.redo(), [{ id: "a" }, { id: "b" }])
+  assert.equal(history.redo(), null)
+  assert.equal(history.canRedo, false)
+
+  assert.deepEqual(history.undo(), [{ id: "a" }])
+  history.push([{ id: "c" }])
+  assert.equal(history.canRedo, false)
+  assert.equal(history.redo(), null)
+  assert.deepEqual(history.undo(), [{ id: "a" }])
+})
+
+test("history snapshots are copies", () => {
+  const state = [{ id: "a" }]
+  const history = createHistory([])
+  history.push(state)
+  state[0].id = "changed"
+  history.undo()
+  const redone = history.redo()
+  assert.deepEqual(redone, [{ id: "a" }])
+  redone[0].id = "mutated"
+  history.undo()
+  assert.deepEqual(history.redo(), [{ id: "a" }])
+})
+
 test("CALLOUT_DEFAULTS are the documented values", () => {
   assert.deepEqual(CALLOUT_DEFAULTS, {
     width: 180,

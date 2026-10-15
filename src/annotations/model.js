@@ -195,14 +195,28 @@ export function smoothPathD(points) {
 
 export function createHistory(initial) {
   const states = [clone(initial)]
+  const undone = []
   return {
     push(state) {
       states.push(clone(state))
+      undone.length = 0
     },
     undo() {
       if (states.length <= 1) return null
-      states.pop()
+      undone.push(states.pop())
       return clone(states[states.length - 1])
+    },
+    redo() {
+      if (undone.length === 0) return null
+      const next = undone.pop()
+      states.push(next)
+      return clone(next)
+    },
+    get canUndo() {
+      return states.length > 1
+    },
+    get canRedo() {
+      return undone.length > 0
     },
     get length() {
       return states.length

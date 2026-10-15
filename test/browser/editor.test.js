@@ -507,3 +507,26 @@ test("placing a note switches back to the select tool", async () => {
     assert.deepEqual(await selectedIds(page), [])
   })
 })
+
+test("redo reapplies an undone change and the editor leaves Ctrl+Z to its host", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "pen")
+    await drag(page, [50, 50], [150, 50])
+    await page.keyboard.press("Control+z")
+    assert.equal((await annotations(page)).length, 1)
+
+    await page.evaluate(() => window.editor.undo())
+    assert.equal((await annotations(page)).length, 0)
+    await page.evaluate(() => window.editor.redo())
+    const list = await annotations(page)
+    assert.equal(list.length, 1)
+    assert.deepEqual(rounded(list[0].points), [
+      [50, 50],
+      [150, 50],
+    ])
+    assert.equal((await page.evaluate(() => window.changes)).length, 3)
+    await page.evaluate(() => window.editor.redo())
+    assert.equal((await annotations(page)).length, 1)
+  })
+})

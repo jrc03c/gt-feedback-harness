@@ -244,3 +244,59 @@ test("placing a note returns the toolbar to Select", async () => {
     )
   })
 })
+
+async function drawStroke(page) {
+  const box = await page.locator(".harness-annotator img").boundingBox()
+  await drag(page, [box.x + 50, box.y + 50], [box.x + 150, box.y + 50])
+}
+
+const annotationCount = page =>
+  page.evaluate(() => window.modal.editor.getAnnotations().length)
+
+test("keyboard shortcuts undo and redo", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await drawStroke(page)
+    assert.equal(await annotationCount(page), 1)
+    await page.keyboard.press("Control+z")
+    assert.equal(await annotationCount(page), 0)
+    await page.keyboard.press("Control+Shift+z")
+    assert.equal(await annotationCount(page), 1)
+    await page.keyboard.press("Control+z")
+    assert.equal(await annotationCount(page), 0)
+    await page.keyboard.press("Control+y")
+    assert.equal(await annotationCount(page), 1)
+  })
+})
+
+test("shortcuts work right after opening and not while typing", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    assert.equal(
+      await page.evaluate(() =>
+        document.activeElement.classList.contains("harness-modal"),
+      ),
+      true,
+    )
+    await drawStroke(page)
+    await page.fill(".harness-text", "abc")
+    await page.focus(".harness-text")
+    await page.keyboard.press("Control+z")
+    assert.equal(await annotationCount(page), 1)
+  })
+})
+
+test("the Redo button reapplies an undone change", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    const labels = await page
+      .locator(".harness-toolbar [data-action]")
+      .evaluateAll(buttons => buttons.map(b => b.dataset.action))
+    assert.deepEqual(labels, ["undo", "redo", "delete"])
+    await drawStroke(page)
+    await page.click('[data-action="undo"]')
+    assert.equal(await annotationCount(page), 0)
+    await page.click('[data-action="redo"]')
+    assert.equal(await annotationCount(page), 1)
+  })
+})
