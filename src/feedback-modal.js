@@ -111,10 +111,45 @@ export function openFeedbackModal({
     .querySelector('[data-action="delete"]')
     .addEventListener("click", () => editor.deleteSelected())
   const cancelButton = overlay.querySelector('[data-action="cancel"]')
-  cancelButton.addEventListener("click", () => {
-    close()
-    onCancel()
-  })
+  cancelButton.addEventListener("click", openConfirm)
+
+  let confirm = null
+
+  function openConfirm() {
+    if (confirm || cancelButton.disabled) return
+    confirm = document.createElement("div")
+    confirm.className = "harness-confirm"
+    confirm.setAttribute("role", "alertdialog")
+    confirm.setAttribute("aria-modal", "true")
+    confirm.setAttribute("aria-label", "Discard this feedback?")
+    confirm.innerHTML = `
+      <div class="harness-confirm-card">
+        <p>Discard this feedback?</p>
+        <div class="harness-actions">
+          <button type="button" data-action="keep">Keep editing</button>
+          <button type="button" data-action="discard" class="harness-danger">Discard</button>
+        </div>
+      </div>`
+    confirm
+      .querySelector('[data-action="keep"]')
+      .addEventListener("click", closeConfirm)
+    confirm
+      .querySelector('[data-action="discard"]')
+      .addEventListener("click", () => {
+        closeConfirm()
+        close()
+        onCancel()
+      })
+    overlay.appendChild(confirm)
+    confirm.querySelector('[data-action="keep"]').focus()
+  }
+
+  function closeConfirm() {
+    if (!confirm) return
+    confirm.remove()
+    confirm = null
+    overlay.focus({ preventScroll: true })
+  }
 
   sendButton.addEventListener("click", async () => {
     sendButton.disabled = true
@@ -140,7 +175,25 @@ export function openFeedbackModal({
     return target.tagName === "TEXTAREA" || target.isContentEditable
   }
 
+  function onEscape() {
+    const active = document.activeElement
+    if (active && active.getAttribute("data-role") === "text") {
+      // Leave the note but keep keyboard focus in the modal.
+      active.blur()
+      overlay.focus({ preventScroll: true })
+    } else if (editor.getTool() !== "select") setTool("select")
+    else openConfirm()
+  }
+
   function onKeyDown(event) {
+    if (event.key === "Escape") {
+      if (confirm) closeConfirm()
+      else onEscape()
+      event.preventDefault()
+      return
+    }
+    // The discard question is modal: no editing shortcuts behind it.
+    if (confirm) return
     if (!(event.ctrlKey || event.metaKey) || isTextEntry(event.target)) return
     const key = event.key.toLowerCase()
     if (key === "z" && !event.shiftKey) editor.undo()

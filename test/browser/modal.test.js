@@ -106,10 +106,12 @@ test("cancel is disabled while sending", async () => {
   })
 })
 
-test("cancel closes without sending", async () => {
+test("cancel then discard closes without sending", async () => {
   await withPage(async ({ page, baseUrl }) => {
     await open(page, baseUrl)
     await page.click('[data-action="cancel"]')
+    assert.equal(await page.evaluate(() => window.cancelled), 0)
+    await page.click('.harness-confirm [data-action="discard"]')
     await page.waitForSelector(".harness-modal", { state: "detached" })
     assert.equal(await page.evaluate(() => window.cancelled), 1)
     assert.equal(await page.evaluate(() => window.sent.length), 0)
@@ -298,5 +300,117 @@ test("the Redo button reapplies an undone change", async () => {
     assert.equal(await annotationCount(page), 0)
     await page.click('[data-action="redo"]')
     assert.equal(await annotationCount(page), 1)
+  })
+})
+
+const tool = page => page.evaluate(() => window.modal.editor.getTool())
+const confirmCount = page => page.locator(".harness-confirm").count()
+
+test("Escape with a drawing tool active switches to Select", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.keyboard.press("Escape")
+    assert.equal(await tool(page), "select")
+    assert.equal(
+      await page.locator('[data-tool="select"][aria-pressed="true"]').count(),
+      1,
+    )
+    assert.equal(await confirmCount(page), 0)
+  })
+})
+
+test("Escape with Select active asks to discard; Escape again closes only the question", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.keyboard.press("Escape")
+    await page.keyboard.press("Escape")
+    const confirm = page.locator(".harness-confirm")
+    assert.equal(await confirm.count(), 1)
+    assert.equal(await confirm.getAttribute("role"), "alertdialog")
+    assert.equal(await confirm.getAttribute("aria-modal"), "true")
+    assert.equal(
+      await confirm.getAttribute("aria-label"),
+      "Discard this feedback?",
+    )
+    assert.equal(
+      await confirm.locator('[data-action="discard"]').innerText(),
+      "Discard",
+    )
+    assert.equal(
+      await confirm.locator('[data-action="keep"]').innerText(),
+      "Keep editing",
+    )
+
+    await page.keyboard.press("Escape")
+    assert.equal(await confirmCount(page), 0)
+    assert.equal(await page.locator(".harness-modal").count(), 1)
+    assert.equal(await page.evaluate(() => window.cancelled), 0)
+  })
+})
+
+test("cancel then Keep editing leaves the modal open", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await drawStroke(page)
+    await page.click('[data-action="cancel"]')
+    assert.equal(await confirmCount(page), 1)
+    await page.click('.harness-confirm [data-action="keep"]')
+    assert.equal(await confirmCount(page), 0)
+    assert.equal(await page.locator(".harness-modal").count(), 1)
+    assert.equal(await page.evaluate(() => window.cancelled), 0)
+    assert.equal(await annotationCount(page), 1)
+    assert.equal(
+      await page.evaluate(() =>
+        document.activeElement.classList.contains("harness-modal"),
+      ),
+      true,
+    )
+  })
+})
+
+test("the discard question sits above the dialog", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click('[data-action="cancel"]')
+    const box = await page.locator(".harness-confirm").boundingBox()
+    const viewport = page.viewportSize()
+    assert.ok(box.width >= viewport.width - 1, JSON.stringify(box))
+    // The discard button is the topmost element where it is drawn.
+    const onTop = await page.evaluate(() => {
+      const button = document.querySelector('[data-action="discard"]')
+      const rect = button.getBoundingClientRect()
+      return (
+        document.elementFromPoint(
+          rect.x + rect.width / 2,
+          rect.y + rect.height / 2,
+        ) === button
+      )
+    })
+    assert.equal(onTop, true)
+  })
+})
+
+test("Escape while typing in a note only leaves the note", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click('[data-tool="callout"]')
+    const box = await page.locator(".harness-annotator img").boundingBox()
+    await page.mouse.click(box.x + 100, box.y + 200)
+    await page.keyboard.type("Hi")
+    const before = await tool(page)
+    await page.keyboard.press("Escape")
+    assert.equal(
+      await page.evaluate(() =>
+        document.activeElement.getAttribute("data-role"),
+      ),
+      null,
+    )
+    assert.equal(await tool(page), before)
+    assert.equal(await confirmCount(page), 0)
+    assert.equal(await page.locator(".harness-modal").count(), 1)
+    const [note] = await page.evaluate(() =>
+      window.modal.editor.getAnnotations(),
+    )
+    assert.equal(note.text, "Hi")
   })
 })
