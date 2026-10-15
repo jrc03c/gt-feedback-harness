@@ -218,7 +218,13 @@ export function createEditor({
     } else if (!isSelected(id)) selection = [id]
 
     if (isSelected(id)) {
-      drag = { id, role: role || "shape", last: point, moved: false }
+      drag = {
+        id,
+        role: role || "shape",
+        last: point,
+        moved: false,
+        before: state,
+      }
       capture(event)
     }
     render()
@@ -316,6 +322,20 @@ export function createEditor({
     }
   }
 
+  // The browser took the capture away without a pointerup (touch or pen
+  // interrupted, element hidden): drop whatever was in progress so the next
+  // pointerdown starts cleanly. After a normal pointerup nothing is active.
+  function onLostPointerCapture(event) {
+    if (!(draft || drag || marquee)) return
+    if (event.pointerId !== activePointerId) return
+    if (drag) state = drag.before
+    draft = null
+    drag = null
+    marquee = null
+    activePointerId = null
+    render()
+  }
+
   function finishMarquee(event) {
     const { start, end, startClient, mode } = marquee
     marquee = null
@@ -401,6 +421,7 @@ export function createEditor({
   svg.addEventListener("pointermove", onPointerMove)
   svg.addEventListener("pointerup", onPointerUp)
   svg.addEventListener("pointercancel", onPointerUp)
+  svg.addEventListener("lostpointercapture", onLostPointerCapture)
   svg.addEventListener("input", onInput)
   svg.addEventListener("focusout", onFocusOut)
   container.addEventListener("keydown", onKeyDown)

@@ -9,7 +9,7 @@ export const TOOL_LABELS = {
 
 export const HINTS = {
   select:
-    "Click a mark to select it. Drag to move it. Press Delete to remove it.",
+    "Click a mark to select it, or drag a box around several. Shift-click adds, Ctrl-click (Cmd-click on Mac) toggles. Drag to move. Delete removes.",
   pen: "Draw on the screenshot.",
   highlight: "Drag to highlight.",
   callout: "Click where the note should point.",
@@ -177,8 +177,12 @@ export function openFeedbackModal({
 
   function onEscape() {
     const active = document.activeElement
-    if (active && active.getAttribute("data-role") === "text") {
-      // Leave the note but keep keyboard focus in the modal.
+    if (
+      active &&
+      (active === textarea || active.getAttribute("data-role") === "text")
+    ) {
+      // Leave the note or the feedback box but keep keyboard focus in the
+      // modal.
       active.blur()
       overlay.focus({ preventScroll: true })
     } else if (editor.getTool() !== "select") setTool("select")

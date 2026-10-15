@@ -530,3 +530,80 @@ test("redo reapplies an undone change and the editor leaves Ctrl+Z to its host",
     assert.equal((await annotations(page)).length, 1)
   })
 })
+
+test("lost pointer capture discards the draft so the editor keeps working", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "pen")
+    await page.mouse.move(50, 50)
+    await page.mouse.down()
+    await page.mouse.move(100, 50, { steps: 4 })
+    await page.evaluate(() => {
+      const svg = document.querySelector(".harness-annotator-svg")
+      svg.dispatchEvent(
+        new PointerEvent("lostpointercapture", { pointerId: 1, bubbles: true }),
+      )
+    })
+    await page.mouse.up()
+    assert.equal(await page.locator("svg g[data-type=pen]").count(), 0)
+
+    await drag(page, [50, 200], [150, 200])
+    const list = await annotations(page)
+    assert.equal(list.length, 1)
+    assert.deepEqual(rounded(list[0].points), [
+      [50, 200],
+      [150, 200],
+    ])
+  })
+})
+
+test("a mixed group drag keeps a selected callout inside the image", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "pen")
+    await drag(page, [20, 280], [60, 280])
+    await setTool(page, "callout")
+    await page.mouse.click(100, 200)
+    await page.evaluate(() => document.activeElement.blur())
+    // Callout box: x 140..320, so it can move right by at most 80, while the
+    // stroke alone could move by 340.
+    await page.mouse.click(40, 280)
+    await withKey(page, "Shift", () => page.mouse.click(143, 120))
+    assert.equal((await selectedIds(page)).length, 2)
+
+    await drag(page, [40, 280], [300, 280])
+    const [stroke, callout] = await annotations(page)
+    assert.ok(callout.box.x + callout.box.w <= 400, JSON.stringify(callout))
+    assert.equal(callout.box.x, 220)
+    assert.deepEqual(callout.anchor, [180, 200])
+    assert.deepEqual(rounded(stroke.points), [
+      [100, 280],
+      [140, 280],
+    ])
+  })
+})
+
+test("lost pointer capture during a move puts the shape back", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "pen")
+    await drag(page, [50, 50], [150, 50])
+    await setTool(page, "select")
+    await page.mouse.move(100, 50)
+    await page.mouse.down()
+    await page.mouse.move(100, 120, { steps: 4 })
+    await page.evaluate(() => {
+      const svg = document.querySelector(".harness-annotator-svg")
+      svg.dispatchEvent(
+        new PointerEvent("lostpointercapture", { pointerId: 1, bubbles: true }),
+      )
+    })
+    await page.mouse.up()
+    const [stroke] = await annotations(page)
+    assert.deepEqual(rounded(stroke.points), [
+      [50, 50],
+      [150, 50],
+    ])
+    assert.equal(await page.evaluate(() => window.changes.length), 1)
+  })
+})

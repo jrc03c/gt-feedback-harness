@@ -242,7 +242,7 @@ test("placing a note returns the toolbar to Select", async () => {
     assert.equal(await page.locator('[aria-pressed="true"]').count(), 1)
     assert.equal(
       await page.locator(".harness-hint").innerText(),
-      "Click a mark to select it. Drag to move it. Press Delete to remove it.",
+      "Click a mark to select it, or drag a box around several. Shift-click adds, Ctrl-click (Cmd-click on Mac) toggles. Drag to move. Delete removes.",
     )
   })
 })
@@ -412,5 +412,35 @@ test("Escape while typing in a note only leaves the note", async () => {
       window.modal.editor.getAnnotations(),
     )
     assert.equal(note.text, "Hi")
+  })
+})
+
+const overlayFocused = page =>
+  page.evaluate(() =>
+    document.activeElement.classList.contains("harness-modal"),
+  )
+
+test("Escape in the feedback box only leaves it (Pen active)", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.focus(".harness-text")
+    await page.keyboard.press("Escape")
+    assert.equal(await tool(page), "pen")
+    assert.equal(await confirmCount(page), 0)
+    assert.equal(await overlayFocused(page), true)
+  })
+})
+
+test("Escape in the feedback box only leaves it (Select active)", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click('[data-tool="select"]')
+    await page.fill(".harness-text", "draft")
+    await page.focus(".harness-text")
+    await page.keyboard.press("Escape")
+    assert.equal(await tool(page), "select")
+    assert.equal(await confirmCount(page), 0)
+    assert.equal(await overlayFocused(page), true)
+    assert.equal(await page.inputValue(".harness-text"), "draft")
   })
 })
