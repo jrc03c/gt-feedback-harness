@@ -12,6 +12,7 @@ import {
   pathToD,
   rectFromPoints,
   shapeBounds,
+  smoothPathD,
   strokeBounds,
   thinPath,
   translateShape,
@@ -196,6 +197,58 @@ test("pathToD builds an SVG path, with a dot for single points", () => {
     ]),
     "M 0 0 L 10 10 L 20 0",
   )
+})
+
+test("smoothPathD handles short paths without curves", () => {
+  assert.equal(smoothPathD([]), "")
+  assert.equal(smoothPathD([[3, 4]]), "M 3 4 L 3 4")
+  assert.equal(
+    smoothPathD([
+      [0, 0],
+      [10, 10],
+    ]),
+    "M 0 0 L 10 10",
+  )
+})
+
+test("smoothPathD keeps a straight run straight, one curve per segment", () => {
+  const d = smoothPathD([
+    [0, 0],
+    [10, 0],
+    [20, 0],
+  ])
+  assert.ok(d.startsWith("M 0 0 C "), d)
+  assert.ok(d.endsWith(" 20 0"), d)
+  const segments = d.split(" C ").slice(1)
+  assert.equal(segments.length, 2)
+  for (const segment of segments) {
+    const numbers = segment.split(" ").map(Number)
+    assert.equal(numbers.length, 6)
+    // Every y (control points and end point) is on y = 0.
+    assert.deepEqual([numbers[1], numbers[3], numbers[5]], [0, 0, 0])
+  }
+})
+
+test("smoothPathD uses Catmull-Rom control points (tension 0.5)", () => {
+  // Segment 1 (end point duplicated): c1 = p0 + (p1 - p0) / 6 = (1, 1),
+  // c2 = p1 - (p2 - p0) / 6 = (4, 6). Segment 2: c1 = p1 + (p2 - p0) / 6 =
+  // (8, 6), c2 = p2 - (p2 - p1) / 6 = (11, 1).
+  assert.equal(
+    smoothPathD([
+      [0, 0],
+      [6, 6],
+      [12, 0],
+    ]),
+    "M 0 0 C 1 1 4 6 6 6 C 8 6 11 1 12 0",
+  )
+  const d = smoothPathD([
+    [0, 0],
+    [3, 7],
+    [9, 2],
+    [14, 8],
+    [20, 1],
+  ])
+  assert.equal(d.split(" C ").length - 1, 4)
 })
 
 test("history undoes to the previous snapshot and stops at the initial state", () => {

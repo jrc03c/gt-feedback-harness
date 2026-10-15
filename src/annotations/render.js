@@ -1,8 +1,8 @@
 import {
   STYLES,
   connector,
-  pathToD,
   rectFromPoints,
+  smoothPathD,
   strokeBounds,
 } from "./model.js"
 
@@ -77,7 +77,7 @@ function renderShape(shape, mode, selected) {
 
 function renderStroke(shape, mode, selected) {
   const style = STYLES[shape.type]
-  const d = pathToD(shape.points)
+  const d = smoothPathD(shape.points)
   const children = [
     h("path", {
       d,

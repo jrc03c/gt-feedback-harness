@@ -51,6 +51,22 @@ test("static pen stroke is a single styled path", () => {
   assert.ok(!svg.includes('data-role="shape"'), "static mode has no hit path")
 })
 
+test("strokes with three or more points render as smooth curves", () => {
+  const curve = {
+    id: "p2",
+    type: "pen",
+    points: [
+      [0, 0],
+      [6, 6],
+      [12, 0],
+    ],
+  }
+  const svg = toSvgString(renderTree([curve], image, { mode: "live" }))
+  const d = 'd="M 0 0 C 1 1 4 6 6 6 C 8 6 11 1 12 0"'
+  // Both the visible path and the hit path use the curve.
+  assert.equal(svg.split(d).length - 1, 2)
+})
+
 test("live pen stroke adds a wide transparent hit path", () => {
   const svg = toSvgString(renderTree([pen], image, { mode: "live" }))
   assert.ok(svg.includes('stroke="transparent" stroke-width="16"'))

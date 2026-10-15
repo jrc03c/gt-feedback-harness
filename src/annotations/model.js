@@ -172,6 +172,27 @@ export function pathToD(points) {
   return "M " + points.map(([x, y]) => `${x} ${y}`).join(" L ")
 }
 
+// A Catmull-Rom spline (tension 0.5) through the points, as cubic Béziers:
+// for the segment p1 -> p2 with neighbours p0 and p3, the control points are
+// p1 + (p2 - p0) / 6 and p2 - (p3 - p1) / 6. The end points stand in for
+// their missing neighbours. Coordinates are rounded to 0.01px.
+export function smoothPathD(points) {
+  if (points.length < 3) return pathToD(points)
+  const round = value => Math.round(value * 100) / 100
+  const pair = ([x, y]) => `${round(x)} ${round(y)}`
+  let d = `M ${pair(points[0])}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[Math.min(points.length - 1, i + 2)]
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
+    d += ` C ${pair(c1)} ${pair(c2)} ${pair(p2)}`
+  }
+  return d
+}
+
 export function createHistory(initial) {
   const states = [clone(initial)]
   return {
