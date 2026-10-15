@@ -66,6 +66,7 @@ export function openFeedbackModal({
   const editor = createEditor({
     container: overlay.querySelector(".harness-editor > div"),
     image,
+    onToolChange: syncToolbar,
   })
   const hint = overlay.querySelector(".harness-hint")
   const error = overlay.querySelector(".harness-error")
@@ -74,6 +75,10 @@ export function openFeedbackModal({
 
   function setTool(tool) {
     editor.setTool(tool)
+    syncToolbar(tool)
+  }
+
+  function syncToolbar(tool) {
     for (const button of overlay.querySelectorAll(
       ".harness-toolbar [data-tool]",
     )) {

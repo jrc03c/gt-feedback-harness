@@ -28,6 +28,9 @@ export function createEditor({
   image,
   annotations = [],
   onChange = () => {},
+  // Called when the editor changes its own tool (after placing a note), not
+  // when setTool() is called from outside.
+  onToolChange = () => {},
 }) {
   let state = clone(annotations)
   let tool = "select"
@@ -182,8 +185,10 @@ export function createEditor({
       state = [...state, callout]
       selection = [callout.id]
       commit()
+      tool = "select"
       render()
       focusText(callout.id)
+      onToolChange(tool)
       event.preventDefault()
       return
     }

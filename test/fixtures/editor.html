@@ -29,10 +29,12 @@
       context.fillRect(0, 0, 400, 300)
 
       window.changes = []
+      window.toolChanges = []
       window.editor = window.harness.createEditor({
         container: document.getElementById("editor"),
         image: { url: canvas.toDataURL(), width: 400, height: 300 },
         onChange: annotations => window.changes.push(annotations),
+        onToolChange: tool => window.toolChanges.push(tool),
       })
       window.editorReady = true
     </script>

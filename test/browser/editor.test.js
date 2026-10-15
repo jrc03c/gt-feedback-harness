@@ -482,3 +482,23 @@ test("delete removes every selected shape in one undoable step", async () => {
     assert.equal((await annotations(page)).length, 3)
   })
 })
+
+test("placing a note switches back to the select tool", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "callout")
+    assert.deepEqual(await page.evaluate(() => window.toolChanges), [])
+    await page.mouse.click(100, 200)
+    assert.equal(await page.evaluate(() => window.editor.getTool()), "select")
+    assert.deepEqual(await page.evaluate(() => window.toolChanges), ["select"])
+    assert.equal(
+      await page.locator(".harness-annotator-svg").getAttribute("data-tool"),
+      "select",
+    )
+    assert.equal((await selectedIds(page)).length, 1)
+
+    await page.mouse.click(30, 280)
+    assert.equal((await annotations(page)).length, 1)
+    assert.deepEqual(await selectedIds(page), [])
+  })
+})

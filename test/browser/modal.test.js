@@ -226,3 +226,21 @@ test("drawing in a wide modal maps to image pixels", async () => {
     { viewport: { width: 1280, height: 900 } },
   )
 })
+
+test("placing a note returns the toolbar to Select", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click('[data-tool="callout"]')
+    const box = await page.locator(".harness-annotator img").boundingBox()
+    await page.mouse.click(box.x + 100, box.y + 200)
+    assert.equal(
+      await page.locator('[data-tool="select"][aria-pressed="true"]').count(),
+      1,
+    )
+    assert.equal(await page.locator('[aria-pressed="true"]').count(), 1)
+    assert.equal(
+      await page.locator(".harness-hint").innerText(),
+      "Click a mark to select it. Drag to move it. Press Delete to remove it.",
+    )
+  })
+})
