@@ -75,6 +75,13 @@ test("static callout renders connector, anchor, box and wrapped text", () => {
   assert.ok(!svg.includes("foreignObject"))
 })
 
+test("static callout text is 16px with 20px lines", () => {
+  const svg = toSvgString(renderTree([callout], image))
+  // Box text starts at y = 40 + 8 padding + 16 font size.
+  assert.ok(svg.includes('<text x="18" y="64" font-size="16"'), svg)
+  assert.ok(svg.includes('<tspan x="18" dy="20">world foo</tspan>'), svg)
+})
+
 test("live callout renders an editable div and a resize handle", () => {
   const svg = toSvgString(renderTree([callout], image, { mode: "live" }))
   assert.ok(svg.includes("<foreignObject"))
@@ -142,7 +149,9 @@ test("wrapText wraps greedily by estimated character width", () => {
   assert.deepEqual(wrapText("hello world foo", 60), ["hello", "world", "foo"])
   assert.deepEqual(wrapText("", 60), [""])
   assert.deepEqual(wrapText("a\nb", 60), ["a", "b"])
-  assert.deepEqual(wrapText("abcdefghijkl", 60), ["abcdefg", "hijkl"])
+  // 16px * 0.55 = 8.8px per character, so 60px holds 6 characters.
+  assert.deepEqual(wrapText("abcdefghijkl", 60), ["abcdef", "ghijkl"])
+  assert.deepEqual(wrapText("abcdefghijkl", 60, 14), ["abcdefg", "hijkl"])
 })
 
 test("h builds a tree node", () => {

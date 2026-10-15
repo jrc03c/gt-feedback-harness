@@ -58,12 +58,17 @@ test("callout tool creates a note at the click, focused for typing", async () =>
     let [callout] = await annotations(page)
     assert.equal(callout.type, "callout")
     assert.deepEqual(callout.anchor, [100, 200])
-    assert.deepEqual(callout.box, { x: 140, y: 90, w: 180, h: 64 })
+    assert.deepEqual(callout.box, { x: 140, y: 90, w: 180, h: 72 })
 
     const focused = await page.evaluate(() =>
       document.activeElement.getAttribute("data-role"),
     )
     assert.equal(focused, "text")
+    const font = await page.evaluate(() => {
+      const style = getComputedStyle(document.activeElement)
+      return [style.fontSize, style.lineHeight]
+    })
+    assert.deepEqual(font, ["16px", "20px"])
 
     await page.keyboard.type("Hello")
     ;[callout] = await annotations(page)
@@ -104,16 +109,16 @@ test("select tool moves a callout box, its anchor, and resizes it", async () => 
 
     await drag(page, [142, 92], [162, 112])
     let [callout] = await annotations(page)
-    assert.deepEqual(callout.box, { x: 160, y: 110, w: 180, h: 64 })
+    assert.deepEqual(callout.box, { x: 160, y: 110, w: 180, h: 72 })
     assert.deepEqual(callout.anchor, [100, 200])
 
     await drag(page, [100, 200], [120, 220])
     ;[callout] = await annotations(page)
     assert.deepEqual(callout.anchor, [120, 220])
 
-    await drag(page, [334, 168], [364, 178])
+    await drag(page, [334, 176], [364, 186])
     ;[callout] = await annotations(page)
-    assert.deepEqual(callout.box, { x: 160, y: 110, w: 210, h: 74 })
+    assert.deepEqual(callout.box, { x: 160, y: 110, w: 210, h: 82 })
   })
 })
 

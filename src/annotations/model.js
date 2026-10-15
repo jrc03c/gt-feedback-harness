@@ -5,7 +5,7 @@ export const STYLES = {
 
 export const CALLOUT_DEFAULTS = {
   width: 180,
-  height: 64,
+  height: 72,
   offsetX: 40,
   offsetY: -110,
   minWidth: 80,

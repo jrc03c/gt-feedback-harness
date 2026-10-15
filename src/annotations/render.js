@@ -9,8 +9,8 @@ import {
 export const SVG_NS = "http://www.w3.org/2000/svg"
 export const XHTML_NS = "http://www.w3.org/1999/xhtml"
 export const CALLOUT_COLOR = "#1e88e5"
-export const FONT_SIZE = 14
-export const LINE_HEIGHT = 18
+export const FONT_SIZE = 16
+export const LINE_HEIGHT = 20
 export const TEXT_PADDING = 8
 const HIT_WIDTH = 16
 const RESIZE_SIZE = 12
