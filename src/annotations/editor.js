@@ -6,13 +6,22 @@ import {
   createCallout,
   createHistory,
   createStroke,
-  strokeBounds,
+  rectFromPoints,
+  shapeBounds,
   thinPath,
   translateShape,
 } from "./model.js"
 import { SVG_NS, renderTree, toDom } from "./render.js"
 
 export const TOOLS = ["select", "pen", "highlight", "callout"]
+
+function unionBounds(list) {
+  const x = Math.min(...list.map(b => b.x))
+  const y = Math.min(...list.map(b => b.y))
+  const right = Math.max(...list.map(b => b.x + b.w))
+  const bottom = Math.max(...list.map(b => b.y + b.h))
+  return { x, y, w: right - x, h: bottom - y }
+}
 
 export function createEditor({
   container,
@@ -22,9 +31,12 @@ export function createEditor({
 }) {
   let state = clone(annotations)
   let tool = "select"
-  let selectedId = null
+  // Ordered ids of the selected shapes; the first is getSelectedId().
+  let selection = []
   let draft = null
   let drag = null
+  // { start, end, startClient, mode } while a select-tool marquee is dragged.
+  let marquee = null
   // The pointer that started the current draft or drag; others are ignored
   // so a second finger cannot corrupt a stroke.
   let activePointerId = null
@@ -50,7 +62,12 @@ export function createEditor({
   function render() {
     flushText()
     const tree = toDom(
-      renderTree(state, image, { mode: "live", selectedId, draft }),
+      renderTree(state, image, {
+        mode: "live",
+        selectedIds: selection,
+        draft,
+        marquee,
+      }),
     )
     svg.setAttribute("viewBox", tree.getAttribute("viewBox"))
     svg.setAttribute("data-tool", tool)
@@ -107,7 +124,41 @@ export function createEditor({
   }
 
   function isOtherPointer(event) {
-    return (draft || drag) && event.pointerId !== activePointerId
+    return (draft || drag || marquee) && event.pointerId !== activePointerId
+  }
+
+  function isSelected(id) {
+    return selection.includes(id)
+  }
+
+  function toggle(ids, id) {
+    return ids.includes(id) ? ids.filter(other => other !== id) : [...ids, id]
+  }
+
+  function selectionMode(event) {
+    if (event.ctrlKey || event.metaKey) return "toggle"
+    if (event.shiftKey) return "add"
+    return "replace"
+  }
+
+  // Shapes lie in the marquee only if their bounds are entirely inside it.
+  function marqueeHits(rect) {
+    return state
+      .filter(shape => {
+        const b = shapeBounds(shape)
+        return (
+          b.x >= rect.x &&
+          b.y >= rect.y &&
+          b.x + b.w <= rect.x + rect.w &&
+          b.y + b.h <= rect.y + rect.h
+        )
+      })
+      .map(shape => shape.id)
+  }
+
+  function capture(event) {
+    activePointerId = event.pointerId
+    svg.setPointerCapture(event.pointerId)
   }
 
   function onPointerDown(event) {
@@ -120,8 +171,7 @@ export function createEditor({
 
     if (tool === "pen" || tool === "highlight") {
       draft = createStroke(tool, [clampPoint(point, image)])
-      activePointerId = event.pointerId
-      svg.setPointerCapture(event.pointerId)
+      capture(event)
       render()
       event.preventDefault()
       return
@@ -130,7 +180,7 @@ export function createEditor({
     if (tool === "callout") {
       const callout = createCallout(clampPoint(point, image), image)
       state = [...state, callout]
-      selectedId = callout.id
+      selection = [callout.id]
       commit()
       render()
       focusText(callout.id)
@@ -141,16 +191,31 @@ export function createEditor({
     const group = event.target.closest
       ? event.target.closest("[data-id]")
       : null
+    const mode = selectionMode(event)
     if (!group) {
-      selectedId = null
+      const start = clampPoint(point, image)
+      marquee = {
+        start,
+        end: start,
+        startClient: [event.clientX, event.clientY],
+        mode,
+      }
+      capture(event)
       render()
+      event.preventDefault()
       return
     }
 
-    selectedId = group.getAttribute("data-id")
-    drag = { role: role || "shape", last: point, moved: false }
-    activePointerId = event.pointerId
-    svg.setPointerCapture(event.pointerId)
+    const id = group.getAttribute("data-id")
+    if (mode === "toggle") selection = toggle(selection, id)
+    else if (mode === "add") {
+      if (!isSelected(id)) selection = [...selection, id]
+    } else if (!isSelected(id)) selection = [id]
+
+    if (isSelected(id)) {
+      drag = { id, role: role || "shape", last: point, moved: false }
+      capture(event)
+    }
     render()
     event.preventDefault()
   }
@@ -162,6 +227,11 @@ export function createEditor({
       render()
       return
     }
+    if (marquee) {
+      marquee.end = clampPoint(toImagePoint(event), image)
+      render()
+      return
+    }
     if (!drag) return
 
     const point = toImagePoint(event)
@@ -169,7 +239,7 @@ export function createEditor({
     const dy = point[1] - drag.last[1]
     drag.last = point
     drag.moved = true
-    const shape = find(selectedId)
+    const shape = find(drag.id)
     if (!shape) return
 
     if (drag.role === "anchor") {
@@ -197,27 +267,25 @@ export function createEditor({
           image,
         ),
       })
-    } else if (shape.type === "callout") {
-      // Dragged by its connector line or body; the target has no data-role,
-      // so the role defaulted to "shape" above.
-      const moved = translateShape(shape, dx, dy)
-      replace({
-        ...moved,
-        anchor: clampPoint(moved.anchor, image),
-        box: clampBox(moved.box, image),
-      })
     } else {
-      // A stroke dragged by its hit path: limit dx/dy so its bounds stay
-      // inside the image instead of clamping each point independently
-      // (which would distort the stroke's shape).
-      const bounds = strokeBounds(shape.points)
+      // A stroke's hit path or a callout's connector (no data-role, so the
+      // role defaulted to "shape"): move the whole selection. Limit dx/dy by
+      // the union of the selected bounds so every shape stays inside the
+      // image without clamping points independently (which would distort
+      // strokes and pull callout anchors away from their boxes).
+      const moving = state.filter(other => isSelected(other.id))
+      const bounds = unionBounds(moving.map(shapeBounds))
       const minDx = -bounds.x
       const maxDx = image.width - (bounds.x + bounds.w)
       const minDy = -bounds.y
       const maxDy = image.height - (bounds.y + bounds.h)
       const clampedDx = Math.min(Math.max(dx, minDx), maxDx)
       const clampedDy = Math.min(Math.max(dy, minDy), maxDy)
-      replace(translateShape(shape, clampedDx, clampedDy))
+      state = state.map(other =>
+        isSelected(other.id)
+          ? translateShape(other, clampedDx, clampedDy)
+          : other,
+      )
     }
     render()
   }
@@ -232,11 +300,37 @@ export function createEditor({
       render()
       return
     }
+    if (marquee) {
+      finishMarquee(event)
+      return
+    }
     if (drag) {
       if (drag.moved) commit()
       drag = null
       render()
     }
+  }
+
+  function finishMarquee(event) {
+    const { start, end, startClient, mode } = marquee
+    marquee = null
+    if (event.type === "pointercancel") {
+      render()
+      return
+    }
+    const isClick =
+      Math.abs(event.clientX - startClient[0]) < 3 &&
+      Math.abs(event.clientY - startClient[1]) < 3
+    if (isClick) {
+      if (mode === "replace") selection = []
+    } else {
+      const hits = marqueeHits(rectFromPoints(start, end))
+      if (mode === "replace") selection = hits
+      else if (mode === "add")
+        selection = [...selection, ...hits.filter(id => !isSelected(id))]
+      else selection = hits.reduce(toggle, selection)
+    }
+    render()
   }
 
   function onInput(event) {
@@ -258,7 +352,10 @@ export function createEditor({
 
   function onKeyDown(event) {
     if (isEditingText()) return
-    if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
+    if (
+      (event.key === "Delete" || event.key === "Backspace") &&
+      selection.length > 0
+    ) {
       deleteSelected()
       event.preventDefault()
     } else if (
@@ -272,9 +369,9 @@ export function createEditor({
 
   function deleteSelected() {
     flushText()
-    if (!selectedId) return
-    state = state.filter(shape => shape.id !== selectedId)
-    selectedId = null
+    if (selection.length === 0) return
+    state = state.filter(shape => !isSelected(shape.id))
+    selection = []
     commit()
     render()
   }
@@ -284,9 +381,10 @@ export function createEditor({
     const previous = history.undo()
     if (!previous) return
     state = previous
-    selectedId = null
+    selection = []
     draft = null
     drag = null
+    marquee = null
     activePointerId = null
     onChange(clone(state))
     render()
@@ -309,7 +407,8 @@ export function createEditor({
     },
     getTool: () => tool,
     getAnnotations: () => clone(state),
-    getSelectedId: () => selectedId,
+    getSelectedId: () => selection[0] ?? null,
+    getSelectedIds: () => [...selection],
     deleteSelected,
     undo,
     destroy() {

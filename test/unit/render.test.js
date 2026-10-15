@@ -97,6 +97,41 @@ test("selected shape gets a selection outline and draft is drawn", () => {
   assert.ok(svg.includes('data-id="h1"'))
 })
 
+test("every id in selectedIds gets an outline", () => {
+  const svg = toSvgString(
+    renderTree([pen, highlight, callout], image, {
+      mode: "live",
+      selectedIds: ["p1", "c1"],
+    }),
+  )
+  assert.equal(svg.split('data-role="selection"').length - 1, 1)
+  assert.ok(svg.includes('stroke-width="3" data-role="box"'))
+  const highlightGroup = svg.slice(
+    svg.indexOf('data-id="h1"'),
+    svg.indexOf('data-id="c1"'),
+  )
+  assert.ok(!highlightGroup.includes('data-role="selection"'))
+})
+
+test("live mode draws the marquee as a normalised dashed rect", () => {
+  const svg = toSvgString(
+    renderTree([], image, {
+      mode: "live",
+      marquee: { start: [30, 40], end: [10, 5] },
+    }),
+  )
+  assert.ok(
+    svg.includes(
+      '<rect x="10" y="5" width="20" height="35" fill="rgba(30, 136, 229, 0.1)" stroke="#1e88e5" stroke-dasharray="4 3" pointer-events="none" data-role="marquee">',
+    ),
+    svg,
+  )
+  const staticSvg = toSvgString(
+    renderTree([], image, { marquee: { start: [0, 0], end: [5, 5] } }),
+  )
+  assert.ok(!staticSvg.includes("marquee"))
+})
+
 test("text content is escaped", () => {
   const svg = toSvgString(renderTree([{ ...callout, text: "<b>&" }], image))
   assert.ok(svg.includes("&lt;b&gt;&amp;"))

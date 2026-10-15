@@ -306,3 +306,179 @@ test("deleteSelected while callout text is dirty can be undone in one step", asy
     assert.equal(list[0].text, "Hi")
   })
 })
+
+const selectedIds = page => page.evaluate(() => window.editor.getSelectedIds())
+
+// Three pen strokes: A and B are short; C is long and reaches x = 250.
+async function drawThreeStrokes(page) {
+  await setTool(page, "pen")
+  await drag(page, [50, 50], [100, 50])
+  await drag(page, [50, 100], [100, 100])
+  await drag(page, [50, 150], [250, 150])
+  await setTool(page, "select")
+  return (await annotations(page)).map(shape => shape.id)
+}
+
+async function withKey(page, key, fn) {
+  await page.keyboard.down(key)
+  await fn()
+  await page.keyboard.up(key)
+}
+
+test("a marquee selects shapes fully inside it and not one partly outside", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    const [a, b] = await drawThreeStrokes(page)
+    await drag(page, [30, 30], [150, 200])
+    assert.deepEqual(await selectedIds(page), [a, b])
+    assert.equal(await page.evaluate(() => window.editor.getSelectedId()), a)
+    assert.equal(await page.locator('svg [data-role="selection"]').count(), 2)
+    assert.equal(await page.locator('svg [data-role="marquee"]').count(), 0)
+  })
+})
+
+test("the marquee is drawn while dragging and ignores pointer events", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await drawThreeStrokes(page)
+    await page.mouse.move(30, 30)
+    await page.mouse.down()
+    await page.mouse.move(150, 200, { steps: 4 })
+    const marquee = page.locator('svg [data-role="marquee"]')
+    assert.equal(await marquee.count(), 1)
+    assert.equal(await marquee.getAttribute("pointer-events"), "none")
+    assert.equal(await marquee.getAttribute("width"), "120")
+    await page.mouse.up()
+  })
+})
+
+test("shift+marquee adds to the selection and ctrl+marquee toggles", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    const [a, b] = await drawThreeStrokes(page)
+    await drag(page, [30, 30], [150, 70])
+    assert.deepEqual(await selectedIds(page), [a])
+    await withKey(page, "Shift", () => drag(page, [30, 80], [150, 120]))
+    assert.deepEqual(await selectedIds(page), [a, b])
+    // A plain marquee replaces the selection.
+    await drag(page, [30, 80], [150, 120])
+    assert.deepEqual(await selectedIds(page), [b])
+    // Ctrl toggles each hit shape: A on, B off.
+    await withKey(page, "Control", () => drag(page, [30, 30], [150, 120]))
+    assert.deepEqual(await selectedIds(page), [a])
+  })
+})
+
+test("shift+click adds and ctrl+click toggles without dragging", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    const [a, b, c] = await drawThreeStrokes(page)
+    await page.mouse.click(75, 50)
+    assert.deepEqual(await selectedIds(page), [a])
+    await withKey(page, "Shift", () => page.mouse.click(200, 150))
+    assert.deepEqual(await selectedIds(page), [a, c])
+    await withKey(page, "Control", () => page.mouse.click(75, 100))
+    assert.deepEqual(await selectedIds(page), [a, c, b])
+
+    // Ctrl-pressing a selected shape deselects it and does not move it.
+    await withKey(page, "Control", () => drag(page, [75, 50], [75, 90]))
+    assert.deepEqual(await selectedIds(page), [c, b])
+    const [strokeA] = await annotations(page)
+    assert.deepEqual(rounded(strokeA.points), [
+      [50, 50],
+      [100, 50],
+    ])
+
+    // A plain click on an unselected shape selects only it.
+    await page.mouse.click(75, 50)
+    assert.deepEqual(await selectedIds(page), [a])
+  })
+})
+
+test("dragging one selected shape moves the whole selection by the same delta", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    const [a, b] = await drawThreeStrokes(page)
+    await drag(page, [30, 30], [150, 120])
+    await page.mouse.click(75, 50)
+    assert.deepEqual(await selectedIds(page), [a, b])
+
+    await drag(page, [75, 50], [95, 80])
+    const [strokeA, strokeB, strokeC] = await annotations(page)
+    assert.deepEqual(rounded(strokeA.points), [
+      [70, 80],
+      [120, 80],
+    ])
+    assert.deepEqual(rounded(strokeB.points), [
+      [70, 130],
+      [120, 130],
+    ])
+    assert.deepEqual(rounded(strokeC.points), [
+      [50, 150],
+      [250, 150],
+    ])
+    assert.deepEqual(await selectedIds(page), [a, b])
+    assert.equal(await page.evaluate(() => window.changes.length), 4)
+  })
+})
+
+test("a group drag stops when any selected shape reaches the image edge", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await drawThreeStrokes(page)
+    await page.mouse.click(75, 50)
+    await withKey(page, "Shift", () => page.mouse.click(200, 150))
+    // C's right end is at 250, so the group can move right by at most 150.
+    await drag(page, [75, 50], [400, 50])
+    const [strokeA, , strokeC] = await annotations(page)
+    assert.deepEqual(rounded(strokeA.points), [
+      [200, 50],
+      [250, 50],
+    ])
+    assert.deepEqual(rounded(strokeC.points), [
+      [200, 150],
+      [400, 150],
+    ])
+  })
+})
+
+test("a callout box drag moves only that callout's box, even in a group", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "pen")
+    await drag(page, [20, 280], [60, 280])
+    await setTool(page, "callout")
+    await page.mouse.click(100, 200)
+    await page.evaluate(() => document.activeElement.blur())
+    await setTool(page, "select")
+    await page.mouse.click(40, 280)
+    await withKey(page, "Shift", () => page.mouse.click(143, 120))
+    assert.equal((await selectedIds(page)).length, 2)
+
+    await drag(page, [143, 120], [153, 130])
+    const [stroke, callout] = await annotations(page)
+    assert.deepEqual(rounded(stroke.points), [
+      [20, 280],
+      [60, 280],
+    ])
+    assert.deepEqual(callout.anchor, [100, 200])
+    assert.equal(callout.box.x, 150)
+  })
+})
+
+test("delete removes every selected shape in one undoable step", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    const [, , c] = await drawThreeStrokes(page)
+    await drag(page, [30, 30], [150, 120])
+    await page.keyboard.press("Delete")
+    const list = await annotations(page)
+    assert.deepEqual(
+      list.map(shape => shape.id),
+      [c],
+    )
+    assert.deepEqual(await selectedIds(page), [])
+    await page.evaluate(() => window.editor.undo())
+    assert.equal((await annotations(page)).length, 3)
+  })
+})

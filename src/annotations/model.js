@@ -85,6 +85,25 @@ export function strokeBounds(points) {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
 }
 
+// Bounds used for marquee hit-testing and group-drag clamping: a stroke's
+// points, or a callout's box joined with its anchor.
+export function shapeBounds(shape) {
+  if (shape.type !== "callout") return strokeBounds(shape.points)
+  const { box, anchor } = shape
+  return strokeBounds([[box.x, box.y], [box.x + box.w, box.y + box.h], anchor])
+}
+
+export function rectFromPoints(start, end) {
+  const x = Math.min(start[0], end[0])
+  const y = Math.min(start[1], end[1])
+  return {
+    x,
+    y,
+    w: Math.max(start[0], end[0]) - x,
+    h: Math.max(start[1], end[1]) - y,
+  }
+}
+
 // Ramer-Douglas-Peucker simplification.
 export function thinPath(points, tolerance = 1.5) {
   if (points.length <= 2) return points.map(([x, y]) => [x, y])

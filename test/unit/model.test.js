@@ -10,6 +10,8 @@ import {
   createStroke,
   nearestPointOnRect,
   pathToD,
+  rectFromPoints,
+  shapeBounds,
   strokeBounds,
   thinPath,
   translateShape,
@@ -83,6 +85,47 @@ test("strokeBounds is the bounding box of the points", () => {
     ]),
     { x: 10, y: 5, w: 20, h: 20 },
   )
+})
+
+test("shapeBounds uses stroke points, and box plus anchor for callouts", () => {
+  assert.deepEqual(
+    shapeBounds({
+      type: "pen",
+      points: [
+        [10, 20],
+        [30, 5],
+      ],
+    }),
+    { x: 10, y: 5, w: 20, h: 15 },
+  )
+  // Anchor below-left of the box: the union spans both.
+  assert.deepEqual(
+    shapeBounds({
+      type: "callout",
+      anchor: [0, 100],
+      box: { x: 40, y: 10, w: 50, h: 30 },
+    }),
+    { x: 0, y: 10, w: 90, h: 90 },
+  )
+  // Anchor inside the box: the bounds are the box.
+  assert.deepEqual(
+    shapeBounds({
+      type: "callout",
+      anchor: [50, 20],
+      box: { x: 40, y: 10, w: 50, h: 30 },
+    }),
+    { x: 40, y: 10, w: 50, h: 30 },
+  )
+})
+
+test("rectFromPoints normalises a drag in any direction", () => {
+  assert.deepEqual(rectFromPoints([30, 40], [10, 5]), {
+    x: 10,
+    y: 5,
+    w: 20,
+    h: 35,
+  })
+  assert.deepEqual(rectFromPoints([1, 2], [4, 8]), { x: 1, y: 2, w: 3, h: 6 })
 })
 
 test("thinPath drops collinear points and keeps corners", () => {

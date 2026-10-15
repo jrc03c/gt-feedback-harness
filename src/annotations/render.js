@@ -1,4 +1,10 @@
-import { STYLES, connector, pathToD, strokeBounds } from "./model.js"
+import {
+  STYLES,
+  connector,
+  pathToD,
+  rectFromPoints,
+  strokeBounds,
+} from "./model.js"
 
 export const SVG_NS = "http://www.w3.org/2000/svg"
 export const XHTML_NS = "http://www.w3.org/1999/xhtml"
@@ -17,13 +23,21 @@ export function h(tag, attrs = {}, children = []) {
 export function renderTree(
   annotations,
   imageSize,
-  { mode = "static", selectedId = null, draft = null } = {},
+  {
+    mode = "static",
+    selectedId = null,
+    selectedIds = null,
+    draft = null,
+    marquee = null,
+  } = {},
 ) {
+  const selected = new Set(selectedIds || (selectedId ? [selectedId] : []))
   const children = [defs()]
   for (const shape of annotations) {
-    children.push(renderShape(shape, mode, shape.id === selectedId))
+    children.push(renderShape(shape, mode, selected.has(shape.id)))
   }
   if (draft) children.push(renderShape(draft, mode, false))
+  if (marquee && mode === "live") children.push(renderMarquee(marquee))
   return h(
     "svg",
     {
@@ -91,6 +105,21 @@ function renderStroke(shape, mode, selected) {
   }
   if (selected) children.push(selectionRect(strokeBounds(shape.points)))
   return h("g", { "data-id": shape.id, "data-type": shape.type }, children)
+}
+
+function renderMarquee({ start, end }) {
+  const rect = rectFromPoints(start, end)
+  return h("rect", {
+    x: rect.x,
+    y: rect.y,
+    width: rect.w,
+    height: rect.h,
+    fill: "rgba(30, 136, 229, 0.1)",
+    stroke: CALLOUT_COLOR,
+    "stroke-dasharray": "4 3",
+    "pointer-events": "none",
+    "data-role": "marquee",
+  })
 }
 
 function selectionRect(bounds) {
