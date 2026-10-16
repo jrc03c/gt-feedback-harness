@@ -16,6 +16,11 @@ export function createFakeStore(seed = {}) {
   const now = () => new Date().toISOString()
   const notify = () => listeners.forEach(fn => fn(state.user))
   const record = name => calls.push(name)
+  const notFound = () =>
+    Object.assign(new Error("Row not found"), { code: "PGRST116" })
+  const requireUser = () => {
+    if (!state.user) throw new Error("Not signed in")
+  }
 
   const overview = program => {
     const sessions = state.sessions.filter(s => s.program_id === program.id)
@@ -73,6 +78,7 @@ export function createFakeStore(seed = {}) {
       viewport,
     }) {
       record("createSession")
+      requireUser()
       const session = {
         id: uuid(),
         program_id: programId,
@@ -91,6 +97,7 @@ export function createFakeStore(seed = {}) {
     async touchSession(sessionId, { reviewerName } = {}) {
       record(`touchSession:${reviewerName ?? ""}`)
       const session = state.sessions.find(s => s.id === sessionId)
+      if (!session) return
       session.last_seen_at = now()
       if (reviewerName !== undefined) session.reviewer_name = reviewerName
     },
@@ -118,19 +125,28 @@ export function createFakeStore(seed = {}) {
     },
     async listPrograms() {
       record("listPrograms")
-      return state.programs.map(overview)
+      return [...state.programs]
+        .sort(
+          (a, b) =>
+            (b.created_at ?? "").localeCompare(a.created_at ?? "") ||
+            b.id.localeCompare(a.id),
+        )
+        .map(overview)
     },
     async getProgram(programId) {
-      return overview(state.programs.find(p => p.id === programId))
+      const program = state.programs.find(p => p.id === programId)
+      if (!program) throw notFound()
+      return overview(program)
     },
     async registerProgram({ gtKey, label }) {
       record("registerProgram")
+      requireUser()
       const program = {
         id: uuid(),
         owner_id: state.user.id,
         gt_key: gtKey.trim(),
         label: (label || "").trim() || null,
-        share_id: "S".repeat(24),
+        share_id: ("S" + ++counter).padEnd(24, "S"),
         created_at: now(),
       }
       state.programs.push(program)
@@ -139,18 +155,25 @@ export function createFakeStore(seed = {}) {
     async regenerateShare(programId) {
       record("regenerateShare")
       const program = state.programs.find(p => p.id === programId)
-      program.share_id = "R".repeat(24)
+      program.share_id = ("R" + ++counter).padEnd(24, "R")
       return program.share_id
     },
     async deleteProgram(programId) {
       record("deleteProgram")
+      for (const s of state.sessions.filter(s => s.program_id === programId)) {
+        await store.deleteSession(s.id)
+      }
       state.programs = state.programs.filter(p => p.id !== programId)
     },
     async listSessions(programId) {
       record("listSessions")
       return state.sessions
         .filter(s => s.program_id === programId)
-        .sort((a, b) => (a.started_at < b.started_at ? 1 : -1))
+        .sort(
+          (a, b) =>
+            b.started_at.localeCompare(a.started_at) ||
+            b.id.localeCompare(a.id),
+        )
         .map(s => {
           const items = state.items.filter(i => i.session_id === s.id)
           return {
@@ -162,6 +185,7 @@ export function createFakeStore(seed = {}) {
     },
     async getSession(sessionId) {
       const session = state.sessions.find(s => s.id === sessionId)
+      if (!session) throw notFound()
       const program = state.programs.find(p => p.id === session.program_id)
       return {
         ...session,
@@ -174,18 +198,23 @@ export function createFakeStore(seed = {}) {
     },
     async downloadScreenshot(path) {
       record("downloadScreenshot")
+      if (!state.screenshots.has(path)) {
+        throw Object.assign(new Error("Object not found"), { code: "404" })
+      }
       return state.screenshots.get(path)
     },
     async setResolved(itemId, resolved) {
       record(`setResolved:${resolved}`)
-      state.items.find(i => i.id === itemId).resolved_at = resolved
-        ? now()
-        : null
+      const item = state.items.find(i => i.id === itemId)
+      if (item) item.resolved_at = resolved ? now() : null
     },
     async deleteSession(sessionId) {
       record("deleteSession")
       state.sessions = state.sessions.filter(s => s.id !== sessionId)
       state.items = state.items.filter(i => i.session_id !== sessionId)
+      for (const path of [...state.screenshots.keys()]) {
+        if (path.startsWith(`${sessionId}/`)) state.screenshots.delete(path)
+      }
     },
   }
   return store

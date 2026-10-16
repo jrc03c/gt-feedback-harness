@@ -13,8 +13,20 @@ const seeded = () =>
   createFakeStore({
     user: { id: "anon-1", is_anonymous: true },
     programs: [
-      { id: "p1", gt_key: "abc", label: "One", share_id: "SHARE1" },
-      { id: "p2", gt_key: "def", label: "Two", share_id: "SHARE2" },
+      {
+        id: "p1",
+        gt_key: "abc",
+        label: "One",
+        share_id: "SHARE1",
+        created_at: "2026-02-01T00:00:00.000Z",
+      },
+      {
+        id: "p2",
+        gt_key: "def",
+        label: "Two",
+        share_id: "SHARE2",
+        created_at: "2026-01-01T00:00:00.000Z",
+      },
     ],
   })
 
@@ -133,4 +145,97 @@ test("deleteSession removes the session and its items", async () => {
   )
   assert.equal(store.state.items.length, 1)
   assert.equal(store.state.items[0].session_id, s2)
+})
+
+test("listPrograms orders newest created first", async () => {
+  const store = seeded()
+  await store.registerProgram({ gtKey: "newest" })
+  const ids = (await store.listPrograms()).map(p => p.gt_key)
+  assert.equal(ids[0], "newest")
+  assert.deepEqual(ids.slice(1), ["abc", "def"])
+})
+
+test("deleteProgram cascades to sessions, items, and screenshots", async () => {
+  const store = seeded()
+  const s = await store.createSession({
+    programId: "p1",
+    shareId: "SHARE1",
+    mode: "test",
+  })
+  await store.sendItem(s, item())
+  const other = await store.createSession({
+    programId: "p2",
+    shareId: "SHARE2",
+    mode: "test",
+  })
+  await store.sendItem(other, item())
+  await store.deleteProgram("p1")
+  assert.deepEqual(
+    store.state.programs.map(p => p.id),
+    ["p2"],
+  )
+  assert.deepEqual(
+    store.state.sessions.map(x => x.id),
+    [other],
+  )
+  assert.equal(store.state.items.length, 1)
+  assert.equal(store.state.screenshots.size, 1)
+})
+
+test("deleteSession removes screenshots so downloads reject with 404", async () => {
+  const store = seeded()
+  const s = await store.createSession({
+    programId: "p1",
+    shareId: "SHARE1",
+    mode: "test",
+  })
+  await store.sendItem(s, item())
+  const path = store.state.items[0].screenshot_path
+  await store.deleteSession(s)
+  assert.equal(store.state.screenshots.size, 0)
+  await assert.rejects(() => store.downloadScreenshot(path), { code: "404" })
+})
+
+test("getSession and getProgram on unknown ids reject with PGRST116", async () => {
+  const store = seeded()
+  await assert.rejects(() => store.getSession("nope"), { code: "PGRST116" })
+  await assert.rejects(() => store.getProgram("nope"), { code: "PGRST116" })
+})
+
+test("sessions with identical started_at sort deterministically", async () => {
+  const same = "2026-02-01T00:00:00.000Z"
+  const store = createFakeStore({
+    sessions: [
+      { id: "a", program_id: "p1", started_at: same },
+      { id: "c", program_id: "p1", started_at: same },
+      { id: "b", program_id: "p1", started_at: same },
+    ],
+  })
+  assert.deepEqual(
+    (await store.listSessions("p1")).map(s => s.id),
+    ["c", "b", "a"],
+  )
+})
+
+test("registrations get distinct 24-character share ids", async () => {
+  const store = seeded()
+  const a = await store.registerProgram({ gtKey: "x" })
+  const b = await store.registerProgram({ gtKey: "y" })
+  assert.notEqual(a.share_id, b.share_id)
+  assert.match(a.share_id, /^[A-Za-z0-9]{24}$/)
+  assert.match(await store.regenerateShare(a.id), /^[A-Za-z0-9]{24}$/)
+})
+
+test("missing user, and unknown ids for touch/resolve", async () => {
+  const store = createFakeStore()
+  await assert.rejects(
+    () => store.registerProgram({ gtKey: "x" }),
+    /Not signed in/,
+  )
+  await assert.rejects(
+    () => store.createSession({ programId: "p", shareId: "s", mode: "test" }),
+    /Not signed in/,
+  )
+  await store.touchSession("nope", { reviewerName: "a" })
+  await store.setResolved("nope", true)
 })

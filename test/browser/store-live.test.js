@@ -33,7 +33,7 @@ test(
       )
       assert.equal(result.anonymous, true)
       assert.equal(result.unknown, null)
-      assert.notEqual(result.forged, "allowed")
+      assert.equal(result.forged, "42501")
     })
   },
 )
