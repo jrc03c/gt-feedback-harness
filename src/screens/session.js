@@ -37,8 +37,10 @@ export async function mountSession({ root, store, sessionId }) {
         empty.textContent = "No feedback was sent in this session."
         list.appendChild(empty)
       }
-      for (const item of items)
-        list.appendChild(await itemCard(item, program, store))
+      const cards = await Promise.all(
+        items.map(item => itemCard(item, program, store)),
+      )
+      for (const card of cards) list.appendChild(card)
     },
   })
 }
@@ -55,7 +57,11 @@ async function itemCard(item, program, store) {
     <p class="harness-item-actions">
       <button type="button" data-action="resolve"></button>
       <button type="button" data-action="download">Download PNG</button>
-    </p>`
+    </p>
+    <p class="harness-error" hidden></p>`
+  const errorBox = card.querySelector(".harness-error")
+  const downloadButton = card.querySelector('[data-action="download"]')
+  downloadButton.hidden = !item.screenshot_path
   card.querySelector(".harness-item-when").textContent = formatDate(
     item.created_at,
   )
@@ -81,6 +87,7 @@ async function itemCard(item, program, store) {
     } catch (error) {
       card.querySelector(".harness-item-image").textContent =
         `Screenshot unavailable: ${error.message}`
+      downloadButton.hidden = true
     }
   }
 
@@ -118,22 +125,38 @@ async function itemCard(item, program, store) {
   labelResolve()
   resolveButton.addEventListener("click", async () => {
     const next = !item.resolved_at
-    await store.setResolved(item.id, next)
-    item.resolved_at = next ? new Date().toISOString() : null
-    card.classList.toggle("harness-resolved", next)
-    labelResolve()
+    resolveButton.disabled = true
+    errorBox.hidden = true
+    try {
+      await store.setResolved(item.id, next)
+      item.resolved_at = next ? new Date().toISOString() : null
+      card.classList.toggle("harness-resolved", next)
+      labelResolve()
+    } catch (error) {
+      errorBox.textContent = `Could not update the item: ${error.message}`
+      errorBox.hidden = false
+    } finally {
+      resolveButton.disabled = false
+    }
   })
 
-  card
-    .querySelector('[data-action="download"]')
-    .addEventListener("click", async () => {
-      if (!imageUrl) return
+  downloadButton.addEventListener("click", async () => {
+    if (!imageUrl) return
+    downloadButton.disabled = true
+    errorBox.hidden = true
+    try {
       const png = await flattenToPng({
         imageUrl,
         imageSize: size,
         annotations: item.annotations || [],
       })
       download(png, `feedback-${program.gt_key}-${item.id}.png`)
-    })
+    } catch (error) {
+      errorBox.textContent = `Could not build the PNG: ${error.message}`
+      errorBox.hidden = false
+    } finally {
+      downloadButton.disabled = false
+    }
+  })
   return card
 }

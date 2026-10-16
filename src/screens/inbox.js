@@ -24,11 +24,13 @@ export async function mountInbox({
             <thead><tr><th>Reviewer</th><th>Mode</th><th>Started</th><th>Duration</th><th>Feedback</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
+          <p class="harness-error" hidden></p>
           <p class="harness-empty" hidden>No sessions yet. Share the program's links to get feedback.</p>
         </main>`
       root.querySelector("h1").textContent =
         `${programLabel(program)} (${program.gt_key})`
       const tbody = root.querySelector("tbody")
+      const errorBox = root.querySelector(".harness-error")
       const filter = root.querySelector("input[type=checkbox]")
 
       function draw() {
@@ -56,19 +58,27 @@ export async function mountInbox({
           const open = row.querySelector("a")
           open.href = `?session=${encodeURIComponent(session.id)}`
           open.textContent = "Open"
-          row
-            .querySelector('[data-action="delete"]')
-            .addEventListener("click", async () => {
-              if (
-                !confirm(
-                  "Delete this session and its feedback? This cannot be undone.",
-                )
+          const deleteButton = row.querySelector('[data-action="delete"]')
+          deleteButton.addEventListener("click", async () => {
+            if (
+              !confirm(
+                "Delete this session and its feedback? This cannot be undone.",
               )
-                return
+            )
+              return
+            deleteButton.disabled = true
+            errorBox.hidden = true
+            try {
               await store.deleteSession(session.id)
-              sessions.splice(sessions.indexOf(session), 1)
+              const index = sessions.indexOf(session)
+              if (index !== -1) sessions.splice(index, 1)
               draw()
-            })
+            } catch (error) {
+              errorBox.textContent = `Could not delete the session: ${error.message}`
+              errorBox.hidden = false
+              deleteButton.disabled = false
+            }
+          })
           tbody.appendChild(row)
         }
       }
