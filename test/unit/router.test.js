@@ -43,3 +43,25 @@ test("the Phase 1 key route is gone", () => {
     screen: "developer",
   })
 })
+
+test("session beats r beats program, and blank values fall through", () => {
+  assert.deepEqual(parseRoute("?session=s1&r=ABC"), {
+    screen: "session",
+    sessionId: "s1",
+  })
+  assert.deepEqual(parseRoute("?r=ABC&program=p1"), {
+    screen: "reviewer",
+    shareId: "ABC",
+    mode: "run",
+  })
+  assert.deepEqual(parseRoute("?session=s1&program=p1"), {
+    screen: "session",
+    sessionId: "s1",
+  })
+  assert.deepEqual(parseRoute("?session=%20&r=ABC"), {
+    screen: "reviewer",
+    shareId: "ABC",
+    mode: "run",
+  })
+  assert.deepEqual(parseRoute("?program=%20"), { screen: "developer" })
+})
