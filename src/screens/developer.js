@@ -18,26 +18,41 @@ const gates = new WeakMap()
 
 export async function withDeveloper(options) {
   const { root, store } = options
-  gates.set(root, options)
+  const previous = gates.get(root)
+  const entry = {
+    options,
+    renderedId: previous ? previous.renderedId : undefined,
+  }
+  gates.set(root, entry)
   if (!root.dataset.harnessAuthBound) {
     root.dataset.harnessAuthBound = "true"
-    store.onAuthChange(() => {
-      show(gates.get(root)).catch(error =>
-        renderErrorBanner(root, error.message),
-      )
+    store.onAuthChange(async () => {
+      try {
+        const current = gates.get(root)
+        const user = await store.getUser()
+        const id = isDeveloper(user) ? user.id : null
+        if (id === current.renderedId) return
+        await show(current.options, current)
+      } catch (error) {
+        renderErrorBanner(root, error.message)
+      }
     })
   }
-  await show(options)
+  await show(options, entry)
 }
 
-async function show({
-  root,
-  store,
-  render,
-  provider = OAUTH_PROVIDER,
-  pageUrl = harnessPageUrl(),
-}) {
+async function show(
+  {
+    root,
+    store,
+    render,
+    provider = OAUTH_PROVIDER,
+    pageUrl = harnessPageUrl(),
+  },
+  entry,
+) {
   const user = await store.getUser()
+  entry.renderedId = isDeveloper(user) ? user.id : null
   if (!isDeveloper(user)) {
     renderSignIn(root, () =>
       store.signInWithProvider(provider, `${pageUrl}?dev`),
@@ -94,7 +109,13 @@ export async function mountDeveloper({
       root.querySelector(".harness-setup-url").textContent = pageUrl
       root
         .querySelector('[data-action="signout"]')
-        .addEventListener("click", () => store.signOut())
+        .addEventListener("click", async () => {
+          try {
+            await store.signOut()
+          } catch (failure) {
+            renderErrorBanner(root, `Could not sign out: ${failure.message}`)
+          }
+        })
 
       const form = root.querySelector(".harness-register")
       form.addEventListener("submit", async event => {
@@ -106,10 +127,15 @@ export async function mountDeveloper({
             gtKey: String(data.get("key")),
             label: String(data.get("label") || ""),
           })
-          await mountDeveloper({ root, store, provider, pageUrl, confirm })
         } catch (failure) {
           error.textContent = failure.message
           error.hidden = false
+          return
+        }
+        try {
+          await mountDeveloper({ root, store, provider, pageUrl, confirm })
+        } catch (failure) {
+          renderErrorBanner(root, failure.message)
         }
       })
 
@@ -135,7 +161,8 @@ export async function mountDeveloper({
             <a></a>
             <button type="button" data-action="regenerate">Regenerate links</button>
             <button type="button" data-action="delete">Delete program</button>
-          </p>`
+          </p>
+          <p class="harness-error" hidden></p>`
         card.querySelector("h3").textContent =
           `${programLabel(program)} (${program.gt_key})`
         card.querySelector(".harness-counts").textContent =
@@ -158,29 +185,50 @@ export async function mountDeveloper({
         const inbox = card.querySelector("a")
         inbox.href = `?dev&program=${encodeURIComponent(program.id)}`
         inbox.textContent = "Open inbox"
+        const cardError = card.querySelector(".harness-error")
+        const actionButtons = card.querySelectorAll(
+          ".harness-card-actions button",
+        )
+        async function perform(label, request) {
+          cardError.hidden = true
+          for (const button of actionButtons) button.disabled = true
+          try {
+            await request()
+          } catch (failure) {
+            cardError.textContent = `Could not ${label}: ${failure.message}`
+            cardError.hidden = false
+            for (const button of actionButtons) button.disabled = false
+            return
+          }
+          try {
+            await mountDeveloper({ root, store, provider, pageUrl, confirm })
+          } catch (failure) {
+            renderErrorBanner(root, failure.message)
+          }
+        }
         card
           .querySelector('[data-action="regenerate"]')
-          .addEventListener("click", async () => {
+          .addEventListener("click", () => {
             if (
               !confirm(
                 "Regenerate the links? The old links stop working immediately. Stored feedback is kept.",
               )
             )
               return
-            await store.regenerateShare(program.id)
-            await mountDeveloper({ root, store, provider, pageUrl, confirm })
+            perform("regenerate the links", () =>
+              store.regenerateShare(program.id),
+            )
           })
         card
           .querySelector('[data-action="delete"]')
-          .addEventListener("click", async () => {
+          .addEventListener("click", () => {
             if (
               !confirm(
                 `Delete "${programLabel(program)}" and all its feedback? This cannot be undone.`,
               )
             )
               return
-            await store.deleteProgram(program.id)
-            await mountDeveloper({ root, store, provider, pageUrl, confirm })
+            perform("delete the program", () => store.deleteProgram(program.id))
           })
         return card
       }

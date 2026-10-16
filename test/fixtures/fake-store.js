@@ -60,6 +60,9 @@ export function createFakeStore(seed = {}) {
       state.user = null
       notify()
     },
+    emitAuth() {
+      notify()
+    },
     onAuthChange(fn) {
       listeners.push(fn)
       return { unsubscribe: () => listeners.splice(listeners.indexOf(fn), 1) }

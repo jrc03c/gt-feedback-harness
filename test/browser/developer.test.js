@@ -108,3 +108,61 @@ test("sign out returns to the prompt", async () => {
     await page.waitForSelector(".harness-signin")
   })
 })
+
+test("a failed regenerate shows an error on the card and keeps the links", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    page.on("dialog", dialog => dialog.accept())
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    await page.evaluate(() => {
+      window.store.regenerateShare = async () => {
+        throw new Error("offline")
+      }
+    })
+    const card = page.locator(".harness-program-card").first()
+    await card.locator('[data-action="regenerate"]').click()
+    await card.locator(".harness-error").waitFor({ state: "visible" })
+    assert.match(await card.locator(".harness-error").innerText(), /offline/)
+    assert.equal(await page.locator(".harness-program-card").count(), 1)
+    assert.match(
+      await card.locator(".harness-link input").first().inputValue(),
+      /\?r=SHARESHARESHARESHARESHAR/,
+    )
+  })
+})
+
+test("dismissing the confirmation cancels a delete", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    page.once("dialog", dialog => dialog.dismiss())
+    await page
+      .locator(".harness-program-card")
+      .first()
+      .locator('[data-action="delete"]')
+      .click()
+    assert.equal(await page.locator(".harness-program-card").count(), 1)
+    assert.ok(
+      !(await page.evaluate(() =>
+        window.store.calls.includes("deleteProgram"),
+      )),
+    )
+  })
+})
+
+test("an auth event for the same user does not re-render", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    await page.fill('.harness-register input[name="key"]', "zzz1111")
+    await page.evaluate(() => window.store.emitAuth())
+    await page.waitForTimeout(200)
+    assert.equal(
+      await page.inputValue('.harness-register input[name="key"]'),
+      "zzz1111",
+    )
+  })
+})
