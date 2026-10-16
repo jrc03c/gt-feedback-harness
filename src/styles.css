@@ -382,3 +382,99 @@ body {
   border-radius: 4px;
   overflow-x: auto;
 }
+
+/* Developer screens */
+.harness-dev-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.harness-dev-header h1 {
+  flex: 1;
+  margin: 0;
+}
+
+.harness-register {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin: 16px 0 24px;
+}
+
+.harness-register label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.harness-register input {
+  font:
+    15px system-ui,
+    sans-serif;
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+
+.harness-program-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.harness-program-card h3 {
+  margin: 0 0 4px;
+}
+
+.harness-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.harness-link span {
+  width: 64px;
+}
+
+.harness-link input {
+  flex: 1;
+  font: 13px monospace;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.harness-card-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.harness-developer button,
+.harness-signin button,
+.harness-inbox button,
+.harness-session button {
+  font:
+    14px system-ui,
+    sans-serif;
+  padding: 6px 12px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #f6f6f6;
+  cursor: pointer;
+}
+
+.harness-signin button,
+.harness-register button[type="submit"] {
+  background: var(--harness-accent);
+  border-color: var(--harness-accent);
+  color: #fff;
+}

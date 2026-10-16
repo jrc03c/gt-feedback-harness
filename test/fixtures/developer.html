@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/test/fixtures/build/entry.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import "/test/fixtures/build/entry.js"
+      window.store = window.harness.createFakeStore({
+        programs: [
+          {
+            id: "p-1",
+            owner_id: "dev-1",
+            gt_key: "abc1234",
+            label: "Demo",
+            share_id: "SHARESHARESHARESHARESHAR",
+            created_at: "2026-10-16T00:00:00Z",
+          },
+        ],
+        sessions: [
+          {
+            id: "s-1",
+            program_id: "p-1",
+            share_id: "SHARESHARESHARESHARESHAR",
+            reviewer_uid: "anon-1",
+            reviewer_name: "Alice",
+            mode: "test",
+            started_at: "2026-10-16T01:00:00Z",
+            last_seen_at: "2026-10-16T01:05:00Z",
+          },
+        ],
+        items: [
+          {
+            id: "i-1",
+            session_id: "s-1",
+            created_at: "2026-10-16T01:02:00Z",
+            text: "x",
+            annotations: [],
+            context: {},
+            screenshot_path: null,
+            resolved_at: null,
+          },
+        ],
+      })
+      window.mount = () =>
+        window.harness.mountDeveloper({
+          root: document.getElementById("app"),
+          store: window.store,
+          pageUrl: "https://example.test/harness/",
+        })
+      window.fixtureReady = true
+    </script>
+  </body>
+</html>

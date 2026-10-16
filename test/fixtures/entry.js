@@ -5,6 +5,7 @@ import { captureViewport } from "../../src/capture.js"
 import { mountProgram, createEmitter } from "../../src/gt-embed.js"
 import { createControls } from "../../src/controls.js"
 import { openFeedbackModal } from "../../src/feedback-modal.js"
+import { mountDeveloper } from "../../src/screens/developer.js"
 import { mountReviewer } from "../../src/screens/reviewer.js"
 import { runReviewer } from "../../src/screens/reviewer-flow.js"
 import { downloadFeedback } from "../../src/send-local.js"
@@ -22,6 +23,7 @@ window.harness = {
   createEmitter,
   createControls,
   openFeedbackModal,
+  mountDeveloper,
   mountReviewer,
   runReviewer,
   downloadFeedback,
