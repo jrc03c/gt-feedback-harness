@@ -19,6 +19,7 @@ It is a feedback harness, not a testing harness. The auto-runner on the `main` b
 - **Recording is on by default**, with a visible indicator and an off switch. If storage limits bite, switch to opt-in.
 - **Screenshots cover the visible viewport only**, excluding the harness's own controls.
 - **Inbox v1** includes: list sessions, view items, delete a session, mark an item resolved, download the flattened annotated image as PNG, and replay the recording with markers at each feedback moment.
+- Phase 1 shipped a single HTML report download in place of the backend; Phase 2 replaced it with Supabase storage (this plan).
 
 ## Facts about GuidedTrack that the design relies on
 

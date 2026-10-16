@@ -10,7 +10,6 @@ import { mountInbox } from "../../src/screens/inbox.js"
 import { mountSession } from "../../src/screens/session.js"
 import { mountReviewer } from "../../src/screens/reviewer.js"
 import { runReviewer } from "../../src/screens/reviewer-flow.js"
-import { downloadFeedback } from "../../src/send-local.js"
 import { createStore } from "../../src/store.js"
 import { createFakeStore } from "./fake-store.js"
 import { pixelAt } from "./pixel.js"
@@ -30,7 +29,6 @@ window.harness = {
   mountSession,
   mountReviewer,
   runReviewer,
-  downloadFeedback,
   createStore,
   createFakeStore,
   pixelAt,

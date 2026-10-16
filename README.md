@@ -1,14 +1,24 @@
 # GuidedTrack Feedback Harness
 
-Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedback, and send it to the developer. This version (Phase 1) saves each piece of feedback to the reviewer's computer as a single HTML file. Later phases store feedback in Supabase, add a developer inbox, and record sessions for replay.
+Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedback, and send it to the developer, who reads it in an inbox. This version (Phase 2) stores feedback in Supabase. A later phase adds session recording and replay.
 
 ## Using it
 
-1. On GuidedTrack, open the program's **Publish** page and add the harness URL to the list of pages allowed to run the program. The harness URL is the page's own address, for example `https://<user>.github.io/<repo>/`. Adding it once covers every link below.
+### For developers
 
-2. Open the harness, enter the program key, choose **Test** or **Run**, and click **Open**. Or go straight to `?key=<key>&mode=test`.
+1. Open the harness URL and sign in with Google.
 
-3. Click **Give feedback** at any point. Draw with the pen or highlighter, add notes that point at parts of the page, type in the box, and click **Send feedback**. One HTML file downloads. Open it in any browser to see the annotated screenshot, the typed feedback, the program lines that were on screen, and the program's variables. To keep the PNG on its own, right-click the screenshot in that file and save it. The file also embeds the full feedback record as JSON (in the `feedback-sidecar` script element) for tools to read.
+2. Register the program's key. The harness gives the program a run link and a test link.
+
+3. On GuidedTrack, open the program's **Publish** page and add the harness URL to the list of pages allowed to run the program. The harness URL is the page's own address, for example `https://<user>.github.io/<repo>/`. Adding it once covers every link.
+
+4. Copy the run link or the test link and send it to reviewers.
+
+Feedback appears in your inbox. Each item shows the annotated screenshot, the typed text, the source lines that were on screen, and the run's variables. You can mark items resolved, download the annotated PNG, and delete sessions.
+
+### For reviewers
+
+Open the link, run the program, click **Give feedback** at any point, draw with the pen or highlighter, add notes that point at parts of the page, type in the box, and click **Send feedback**. There is nothing to install and no account to create.
 
 "Reset everything" in GuidedTrack's menu works because the harness keeps the program and mode in the query string (the reviewer's name is remembered separately, in the browser). It only brings you back to the harness when you opened the harness at the address you saved on the Publish page, for example `https://<user>.github.io/<repo>/` rather than `https://<user>.github.io/<repo>/index.html`.
 
@@ -18,6 +28,8 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 - Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen.
 - The reviewer's name is stored in the browser, not in the link, so it does not carry over to another browser or device.
 - "Reset everything" returns to the harness only when the harness was opened at the exact address saved on the Publish page (`/<repo>/`, not `/<repo>/index.html`).
+- Free-tier Supabase pauses a project after a week without traffic. The weekly CI ping prevents it.
+- Anonymous sign-ins are limited to 30 per hour per IP address.
 
 ## Development
 
