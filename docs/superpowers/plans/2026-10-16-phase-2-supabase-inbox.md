@@ -16,7 +16,8 @@
 - New runtime dependency allowed: `@supabase/supabase-js`. New dev dependency allowed: `pg` (local pgTAP runner only). Playwright stays out of `package.json`.
 - Every commit message ends with the trailer line `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 - Markdown: exactly one blank line after every heading; no manual line wrapping inside paragraphs.
-- The anon key is public by design and is committed in `src/config.js`. The service role key is never committed and never shipped to the browser.
+- The publishable key is public by design and is committed in `src/config.js` under the name `SUPABASE_ANON_KEY` (kept for Task 1 compatibility; it holds the `sb_publishable_...` key). The secret key is never committed and never shipped to the browser.
+- Database rules from the Supabase skills: wrap `auth.uid()`/`auth.jwt()` in policies as `(select auth.uid())`; keep `security definer` helpers in a non-exposed `private` schema with `set search_path = ''`; grant table access explicitly (new tables are not exposed to the Data API by default); every table in `public` has RLS enabled; UPDATE policies carry both `using` and `with check`.
 - Table and column names exactly as in Task 2's migration; share ids are 24 characters of `[A-Za-z0-9]` generated in the browser from `crypto.getRandomValues`.
 - Routing by query string only: `?r=SHARE_ID&mode=run|test` (reviewer), `?dev` (developer home, also the default), `?dev&program=UUID` (inbox), `?session=UUID` (session view). Phase 1's `?key=` route and `src/send-local.js` are removed in Task 11.
 - Reviewer-supplied strings reach the DOM only through `textContent`; never through `innerHTML` interpolation.
@@ -25,10 +26,10 @@
 
 ## Prerequisites (the human does these; Task 1 records the values)
 
-1. Create a Supabase project (free tier) named `gt-feedback-harness`. Note the project ref, the project URL (`https://<ref>.supabase.co`), the anon key, the service role key, the database password, and the **Session pooler** connection string (the direct connection is IPv6-only; the pooler is reachable from IPv4 containers).
+1. Create a Supabase project (free tier) named `gt-feedback-harness`; leave "Automatically expose new tables" off and turn "Enable automatic RLS" on. Note the project ref, the project URL (`https://<ref>.supabase.co`), the **publishable** key (`sb_publishable_...`, under Settings, API Keys; not the legacy `anon` JWT, which Supabase is deprecating by the end of 2026), the database password, and the **Session pooler** connection string (the direct connection is IPv6-only; the pooler is IPv4 and free). The secret key is never needed by this plan.
 2. Authentication → Providers: enable **Anonymous sign-ins**. Enable **Google**: create an OAuth client (Web application) in Google Cloud Console with the authorized JavaScript origin `https://jrc03c.github.io` and the authorized redirect URI shown on Supabase's Google provider page; paste the client id and secret into Supabase.
 3. Authentication → URL Configuration: Site URL `https://jrc03c.github.io/gt-feedback-harness/`; add `https://jrc03c.github.io/gt-feedback-harness/**` and `http://127.0.0.1:*/**` to the redirect allow list (the second one is for local testing).
-4. GitHub repository secrets: `SUPABASE_ACCESS_TOKEN` (a personal access token from the Supabase dashboard), `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`.
+4. GitHub repository secrets: `SUPABASE_ACCESS_TOKEN` (a **scoped** personal access token limited to this project with read access to it; `db push` authenticates with the database password, so the token needs no write permissions), `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`.
 5. Locally, export `SUPABASE_DB_URL` (the session pooler string with the password filled in) for `npm run test:db`.
 
 ## File structure
@@ -47,7 +48,7 @@ src/screens/inbox.js              sessions of one program
 src/screens/session.js            items of one session
 src/screens/banners.js            renderErrorBanner/renderRefusalBanner moved here from reviewer.js
 supabase/config.toml              created by `npx supabase init`
-supabase/migrations/20261016000000_schema.sql
+supabase/migrations/<timestamp>_schema.sql  (created with `supabase migration new schema`)
 supabase/tests/0001_policies.sql  pgTAP
 scripts/run-pgtap.mjs             local runner: sends a test file to SUPABASE_DB_URL via pg
 scripts/keep-alive.mjs            weekly ping
@@ -62,6 +63,8 @@ test/browser/store-live.test.js   network-gated against the real project
 ---
 
 ### Task 1: Configuration and dependencies
+
+> Executed before the Supabase skills were installed. Superseded details: the committed key must be the publishable key (`sb_publishable_...`), and `isConfigured()` must check for that prefix; both changes land in Task 2's Step 6. Pin `@supabase/supabase-js` and `pg` to exact versions in that step too (the skills require pinned versions).
 
 **Files:**
 - Create: `src/config.js`, `test/unit/config.test.js`
@@ -140,7 +143,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 2: Schema, policies, and pgTAP tests
 
 **Files:**
-- Create: `supabase/config.toml` (via CLI), `supabase/migrations/20261016000000_schema.sql`, `supabase/tests/0001_policies.sql`, `scripts/run-pgtap.mjs`
+- Create: `supabase/config.toml` (via CLI), `supabase/migrations/<timestamp>_schema.sql  (created with `supabase migration new schema`)`, `supabase/tests/0001_policies.sql`, `scripts/run-pgtap.mjs`
 - Modify: `.gitignore` (add `supabase/.temp`, `supabase/.branches`)
 
 **Interfaces:**
@@ -148,8 +151,8 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Initialise the Supabase project directory**
 
-Run: `cd /home/ubuntu/workspace && npx supabase init --yes 2>&1 | tail -2 && ls supabase`
-Expected: `supabase/config.toml` exists (keep its defaults). Append `supabase/.temp` and `supabase/.branches` to `.gitignore`.
+Run: `cd /home/ubuntu/workspace && npx supabase init --yes 2>&1 | tail -2 && npx supabase migration new schema && ls supabase supabase/migrations`
+Expected: `supabase/config.toml` exists (keep its defaults) and an empty `supabase/migrations/<timestamp>_schema.sql` was created by the CLI (never invent the filename). Append `supabase/.temp` and `supabase/.branches` to `.gitignore`.
 
 - [ ] **Step 2: Write the local pgTAP runner**
 
@@ -311,9 +314,16 @@ Expected: the runner connects, then the first statement touching `programs` fail
 
 - [ ] **Step 5: Write the migration**
 
-`supabase/migrations/20261016000000_schema.sql`:
+- [ ] **Step 5: Write the migration**
+
+Paste this into the file `supabase migration new schema` created (`supabase/migrations/<timestamp>_schema.sql`):
 
 ```sql
+-- Helpers live in a schema the Data API never exposes, so they run only
+-- inside policies and SQL and cannot be called over REST.
+create schema if not exists private;
+grant usage on schema private to authenticated;
+
 -- Programs a developer has registered. share_id is the secret in reviewer links.
 create table public.programs (
   id uuid primary key default gen_random_uuid(),
@@ -324,6 +334,7 @@ create table public.programs (
   created_at timestamptz not null default now(),
   unique (owner_id, gt_key)
 );
+create index programs_owner on public.programs (owner_id);
 
 -- One reviewer run of one program. share_id is denormalised so the insert
 -- policy can verify the reviewer knew the link without reading programs.
@@ -343,6 +354,7 @@ create table public.sessions (
   last_seen_at timestamptz not null default now()
 );
 create index sessions_program_started on public.sessions (program_id, started_at desc);
+create index sessions_reviewer on public.sessions (reviewer_uid);
 
 create table public.items (
   id uuid primary key default gen_random_uuid(),
@@ -358,107 +370,125 @@ create table public.items (
 );
 create index items_session_created on public.items (session_id, created_at);
 
--- Helpers. The security definer ones let policies check facts the caller
--- is not allowed to read directly (a reviewer cannot read programs).
-create function public.is_developer() returns boolean
-language sql stable as $$
-  select auth.uid() is not null
-     and coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) = false
+-- Policy helpers. The definer ones let policies check facts the caller is
+-- not allowed to read directly (a reviewer cannot read programs). Every
+-- definer body is anchored on the calling user's identity, and search_path
+-- is empty so every reference is schema-qualified.
+create function private.is_developer() returns boolean
+language sql stable set search_path = '' as $$
+  select (select auth.uid()) is not null
+     and coalesce(((select auth.jwt()) ->> 'is_anonymous')::boolean, false) = false
 $$;
 
-create function public.share_matches(program uuid, share text) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from programs p where p.id = program and p.share_id = share)
+create function private.share_matches(program uuid, share text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select (select auth.uid()) is not null
+     and exists (select 1 from public.programs p where p.id = program and p.share_id = share)
 $$;
 
-create function public.owns_program(program uuid) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from programs p where p.id = program and p.owner_id = auth.uid())
-$$;
-
-create function public.owns_session(session uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+create function private.owns_program(program uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
   select exists (
-    select 1 from sessions s join programs p on p.id = s.program_id
-    where s.id = session and p.owner_id = auth.uid()
+    select 1 from public.programs p where p.id = program and p.owner_id = (select auth.uid())
   )
 $$;
 
-create function public.reviews_session(session uuid) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from sessions s where s.id = session and s.reviewer_uid = auth.uid())
+create function private.owns_session(session uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.sessions s join public.programs p on p.id = s.program_id
+    where s.id = session and p.owner_id = (select auth.uid())
+  )
 $$;
 
--- Reviewers resolve a link without being able to list programs.
+create function private.reviews_session(session uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.sessions s where s.id = session and s.reviewer_uid = (select auth.uid())
+  )
+$$;
+
+revoke all on function private.is_developer() from public;
+revoke all on function private.share_matches(uuid, text) from public;
+revoke all on function private.owns_program(uuid) from public;
+revoke all on function private.owns_session(uuid) from public;
+revoke all on function private.reviews_session(uuid) from public;
+grant execute on function private.is_developer() to authenticated;
+grant execute on function private.share_matches(uuid, text) to authenticated;
+grant execute on function private.owns_program(uuid) to authenticated;
+grant execute on function private.owns_session(uuid) to authenticated;
+grant execute on function private.reviews_session(uuid) to authenticated;
+
+-- The one deliberately exposed function: a signed-in reviewer trades the
+-- link secret for the program key. It returns nothing without the secret.
 create function public.resolve_share(share text) returns table (program_id uuid, gt_key text)
-language sql stable security definer set search_path = public as $$
-  select id, gt_key from programs where share_id = share
+language sql stable security definer set search_path = '' as $$
+  select id, gt_key from public.programs
+  where share_id = share and (select auth.uid()) is not null
 $$;
-
-revoke all on function public.resolve_share(text) from public;
-revoke all on function public.share_matches(uuid, text) from public;
-revoke all on function public.owns_program(uuid) from public;
-revoke all on function public.owns_session(uuid) from public;
-revoke all on function public.reviews_session(uuid) from public;
+revoke all on function public.resolve_share(text) from public, anon;
 grant execute on function public.resolve_share(text) to authenticated;
-grant execute on function public.share_matches(uuid, text) to authenticated;
-grant execute on function public.owns_program(uuid) to authenticated;
-grant execute on function public.owns_session(uuid) to authenticated;
-grant execute on function public.reviews_session(uuid) to authenticated;
-grant execute on function public.is_developer() to authenticated;
 
 -- Program list with counts; security_invoker makes it obey the tables' RLS.
 create view public.program_overview with (security_invoker = true) as
   select p.*,
-    (select count(*) from sessions s where s.program_id = p.id) as session_count,
-    (select count(*) from items i join sessions s on s.id = i.session_id
+    (select count(*) from public.sessions s where s.program_id = p.id) as session_count,
+    (select count(*) from public.items i join public.sessions s on s.id = i.session_id
       where s.program_id = p.id and i.resolved_at is null) as unresolved_count
-  from programs p;
+  from public.programs p;
+
+-- New tables are not exposed to the Data API by default; grant exactly what
+-- the app needs to the authenticated role (anonymous reviewers and signed-in
+-- developers both use it) and nothing to anon.
+grant select, insert, update, delete on public.programs, public.sessions, public.items to authenticated;
+grant select on public.program_overview to authenticated;
 
 alter table public.programs enable row level security;
 alter table public.sessions enable row level security;
 alter table public.items enable row level security;
 
 create policy "owners manage programs" on public.programs for all to authenticated
-  using (is_developer() and owner_id = auth.uid())
-  with check (is_developer() and owner_id = auth.uid());
+  using ((select private.is_developer()) and owner_id = (select auth.uid()))
+  with check ((select private.is_developer()) and owner_id = (select auth.uid()));
 
 create policy "reviewers create sessions" on public.sessions for insert to authenticated
-  with check (reviewer_uid = auth.uid() and share_matches(program_id, share_id));
+  with check (reviewer_uid = (select auth.uid()) and (select private.share_matches(program_id, share_id)));
 create policy "reviewers and owners read sessions" on public.sessions for select to authenticated
-  using (reviewer_uid = auth.uid() or owns_program(program_id));
+  using (reviewer_uid = (select auth.uid()) or (select private.owns_program(program_id)));
 create policy "reviewers update own sessions" on public.sessions for update to authenticated
-  using (reviewer_uid = auth.uid())
-  with check (reviewer_uid = auth.uid() and share_matches(program_id, share_id));
+  using (reviewer_uid = (select auth.uid()))
+  with check (reviewer_uid = (select auth.uid()) and (select private.share_matches(program_id, share_id)));
 create policy "owners delete sessions" on public.sessions for delete to authenticated
-  using (owns_program(program_id));
+  using ((select private.owns_program(program_id)));
 
 create policy "reviewers create items" on public.items for insert to authenticated
-  with check (reviews_session(session_id));
+  with check ((select private.reviews_session(session_id)));
 create policy "reviewers and owners read items" on public.items for select to authenticated
-  using (reviews_session(session_id) or owns_session(session_id));
+  using ((select private.reviews_session(session_id)) or (select private.owns_session(session_id)));
 create policy "owners update items" on public.items for update to authenticated
-  using (owns_session(session_id)) with check (owns_session(session_id));
+  using ((select private.owns_session(session_id))) with check ((select private.owns_session(session_id)));
 create policy "owners delete items" on public.items for delete to authenticated
-  using (owns_session(session_id));
+  using ((select private.owns_session(session_id)));
 
 -- Screenshots live at screenshots/{session_id}/{item_id}.webp.
 insert into storage.buckets (id, name, public) values ('screenshots', 'screenshots', false);
 
 create policy "reviewers upload screenshots" on storage.objects for insert to authenticated
   with check (bucket_id = 'screenshots'
-    and reviews_session(((storage.foldername(name))[1])::uuid));
+    and (select private.reviews_session(((storage.foldername(name))[1])::uuid)));
 create policy "reviewers and owners read screenshots" on storage.objects for select to authenticated
   using (bucket_id = 'screenshots'
-    and (reviews_session(((storage.foldername(name))[1])::uuid)
-      or owns_session(((storage.foldername(name))[1])::uuid)));
+    and ((select private.reviews_session(((storage.foldername(name))[1])::uuid))
+      or (select private.owns_session(((storage.foldername(name))[1])::uuid))));
 create policy "owners delete screenshots" on storage.objects for delete to authenticated
-  using (bucket_id = 'screenshots' and owns_session(((storage.foldername(name))[1])::uuid));
+  using (bucket_id = 'screenshots' and (select private.owns_session(((storage.foldername(name))[1])::uuid)));
 ```
 
 - [ ] **Step 6: Apply the migration to the project and run the tests**
 
-Run: `npx supabase link --project-ref <ref>` (prompts for the database password; set `SUPABASE_ACCESS_TOKEN` in the environment first), then `npx supabase db push`, then `SUPABASE_DB_URL=<pooler url> npm run test:db`.
+Run: `npx supabase link --project-ref <ref>` (prompts for the database password; set `SUPABASE_ACCESS_TOKEN` in the environment first), then `npx supabase db push`, then `npx supabase db advisors` (CLI 2.81.3 or newer; fix anything it reports, re-push, and re-run), then `SUPABASE_DB_URL=<pooler url> npm run test:db`.
+
+Then fill in `src/config.js` with the real project URL and the `sb_publishable_...` key, change `isConfigured()` to require the key to start with `sb_publishable_` (a `sb_secret_` key must make it return false, and add that case to `test/unit/config.test.js`), and tighten `test/browser/app.test.js`'s banner assertion to `/isn't valid/` with the first wait on `.harness-signin` only. Run `HARNESS_SUPABASE_URL=<url> HARNESS_SUPABASE_ANON_KEY=<publishable key> npm run test:browser` and confirm the live store test and the app test pass.
 Expected: `db push` applies `20261016000000_schema.sql`; the runner prints `ok 1` through `ok 22` and exits 0. If assertion 19 fails with a cast error, the storage policy received a non-uuid folder; the test paths are uuids, so check the policy text. If assertion 3 or 8 fails because the error code differs, the thrown SQLSTATE is printed in the TAP diagnostic; RLS violations are `42501`.
 
 - [ ] **Step 7: Commit**
@@ -495,8 +525,9 @@ if (!url || !key) {
   console.error("SUPABASE_URL and SUPABASE_ANON_KEY are required")
   process.exit(2)
 }
+// Publishable keys travel in the apikey header only (they are not JWTs).
 const response = await fetch(`${url}/rest/v1/programs?select=id&limit=1`, {
-  headers: { apikey: key, Authorization: `Bearer ${key}` },
+  headers: { apikey: key },
 })
 console.log(`keep-alive: ${response.status}`)
 if (!response.ok) process.exit(1)
