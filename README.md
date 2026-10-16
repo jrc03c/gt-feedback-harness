@@ -6,7 +6,7 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 
 ### For developers
 
-1. Open the harness URL and sign in with Google.
+1. Open the harness URL and sign in with GitHub.
 
 2. Register the program's key. The harness gives the program a run link and a test link.
 

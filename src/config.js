@@ -1,14 +1,21 @@
-// The Supabase anon key is public by design: it only grants what the
-// row-level security policies allow. The service role key never goes here.
-export const SUPABASE_URL = "https://REPLACE.supabase.co"
-export const SUPABASE_ANON_KEY = "REPLACE"
-export const OAUTH_PROVIDER = "google"
+// The Supabase publishable key (sb_publishable_...) is public by design: it
+// only grants what the row-level security policies allow. It keeps the name
+// SUPABASE_ANON_KEY for compatibility. Secret keys (sb_secret_...) never go
+// here, and isConfigured() refuses one if it is pasted by mistake.
+export const SUPABASE_URL = "https://rubbnzscqjsoipfhmwgj.supabase.co"
+export const SUPABASE_ANON_KEY =
+  "sb_publishable_y3sWX2tUdd64rrl6-EMpxQ_8Nnc6CZ1"
+export const OAUTH_PROVIDER = "github"
+
+export function isConfiguredValue(url, key) {
+  return (
+    typeof url === "string" &&
+    typeof key === "string" &&
+    /^https:\/\/[a-z]+\.supabase\.co$/.test(url) &&
+    /^sb_publishable_[A-Za-z0-9_-]+$/.test(key)
+  )
+}
 
 export function isConfigured() {
-  return (
-    SUPABASE_URL.startsWith("https://") &&
-    !SUPABASE_URL.includes("REPLACE") &&
-    SUPABASE_ANON_KEY.length > 20 &&
-    SUPABASE_ANON_KEY !== "REPLACE"
-  )
+  return isConfiguredValue(SUPABASE_URL, SUPABASE_ANON_KEY)
 }

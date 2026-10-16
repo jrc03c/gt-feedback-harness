@@ -54,7 +54,7 @@ async function show(
   const user = await store.getUser()
   entry.renderedId = isDeveloper(user) ? user.id : null
   if (!isDeveloper(user)) {
-    renderSignIn(root, () =>
+    renderSignIn(root, provider, () =>
       store.signInWithProvider(provider, `${pageUrl}?dev`),
     )
     return
@@ -62,13 +62,18 @@ async function show(
   await render(user)
 }
 
-function renderSignIn(root, onSignIn) {
+// signInWithProvider stays generic; add a label here to offer another provider.
+const PROVIDER_LABELS = { github: "GitHub", google: "Google" }
+
+function renderSignIn(root, provider, onSignIn) {
   root.innerHTML = `
     <main class="harness-home harness-signin">
       <h1>GuidedTrack Feedback Harness</h1>
       <p>Developers sign in to register programs and read feedback. Reviewers never sign in; they just open the links you give them.</p>
-      <button type="button">Sign in with Google</button>
+      <button type="button"></button>
     </main>`
+  root.querySelector("button").textContent =
+    `Sign in with ${PROVIDER_LABELS[provider] || provider}`
   root.querySelector("button").addEventListener("click", () => {
     onSignIn().catch(error => renderErrorBanner(root, error.message))
   })

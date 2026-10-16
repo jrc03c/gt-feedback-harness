@@ -14,7 +14,7 @@ const route = parseRoute(window.location.search)
 if (!isConfigured()) {
   renderErrorBanner(
     root,
-    "This harness has no backend configured. Set the Supabase URL and anon key in src/config.js.",
+    "This harness has no backend configured. Set the Supabase URL and publishable key in src/config.js.",
   )
 } else {
   const store = createStore({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY })

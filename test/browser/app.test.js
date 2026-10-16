@@ -37,14 +37,14 @@ test("the app shows the developer sign-in at the root and the invalid-link banne
       })
     })
     await page.goto(`${baseUrl}/index.html`)
-    await page.waitForSelector(".harness-signin, .harness-banner")
+    await page.waitForSelector(".harness-signin")
     await page.goto(
       `${baseUrl}/index.html?r=NOPENOPENOPENOPENOPENOPE&mode=test`,
     )
     await page.waitForSelector(".harness-banner")
     assert.match(
       await page.locator(".harness-banner h2").innerText(),
-      /isn't valid|unavailable|went wrong/,
+      /isn't valid/,
     )
   })
 })

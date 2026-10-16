@@ -14,12 +14,12 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.118.0",
+    "@supabase/supabase-js": "2.118.0",
     "modern-screenshot": "^4.7.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
-    "pg": "^8.23.1",
+    "pg": "8.23.1",
     "prettier": "^3.3.3"
   }
 }

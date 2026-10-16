@@ -13,13 +13,17 @@ test("signed out shows the sign-in prompt and signing in lists programs with cou
     await open(page, baseUrl)
     await page.waitForSelector(".harness-signin")
     assert.equal(await page.locator(".harness-program-card").count(), 0)
+    assert.equal(
+      await page.locator(".harness-signin button").innerText(),
+      "Sign in with GitHub",
+    )
     await page.click(".harness-signin button")
     await page.waitForSelector(".harness-program-card")
     assert.equal(
       await page.evaluate(() =>
         window.store.calls.find(c => c.startsWith("signInWithProvider")),
       ),
-      "signInWithProvider:google:https://example.test/harness/?dev",
+      "signInWithProvider:github:https://example.test/harness/?dev",
     )
     assert.match(
       await page.locator(".harness-program-card h3").innerText(),
