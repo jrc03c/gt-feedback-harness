@@ -28,6 +28,8 @@ Requirements: Node 24. Browser tests need Playwright 1.49.0 and its Chromium. Th
 - `npm test` builds, then runs the unit tests, then the browser tests
 - `npm run format`
 
+Backend: Supabase. `src/config.js` holds the project URL and anon key (public). `npm run test:db` runs the database policy tests against `SUPABASE_DB_URL` (the project's session-pooler connection string); CI runs them against a throwaway local database.
+
 Serve the repository root with any static server (for example `npx serve .`) and open `index.html` through it. Opening the file directly from disk does not work because the page uses module scripts.
 
 ## Deployment
