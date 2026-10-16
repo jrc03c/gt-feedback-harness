@@ -24,5 +24,10 @@ export function databaseUrl(env = process.env, file) {
   const template = values.SUPABASE_DB_URL_TEMPLATE
   const password = values.SUPABASE_DB_PASSWORD
   if (!template || !password) return null
+  if (!template.includes("[YOUR-PASSWORD]")) {
+    throw new Error(
+      "SUPABASE_DB_URL_TEMPLATE in .env must contain the literal placeholder [YOUR-PASSWORD]",
+    )
+  }
   return template.replace("[YOUR-PASSWORD]", encodeURIComponent(password))
 }

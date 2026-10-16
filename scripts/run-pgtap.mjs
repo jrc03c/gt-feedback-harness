@@ -15,12 +15,23 @@ if (!url) {
   process.exit(2)
 }
 
+// Errors print only their code and message: a pg error object can carry
+// connection details, and the URL holds the database password.
+function fail(error) {
+  console.error(`pgTAP run failed: ${error.code || "error"}: ${error.message}`)
+  process.exit(1)
+}
+
 const client = new pg.Client({
   connectionString: url,
   ssl: { rejectUnauthorized: false },
 })
-await client.connect()
 let failed = 0
+try {
+  await client.connect()
+} catch (error) {
+  fail(error)
+}
 try {
   for (const file of readdirSync(dir)
     .filter(f => f.endsWith(".sql"))
@@ -39,9 +50,11 @@ try {
       }
     }
   }
-} finally {
-  await client.end()
+} catch (error) {
+  await client.end().catch(() => {})
+  fail(error)
 }
+await client.end()
 if (failed > 0) {
   console.error(`${failed} pgTAP assertion(s) failed`)
   process.exit(1)
