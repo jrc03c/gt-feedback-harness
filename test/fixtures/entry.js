@@ -7,6 +7,8 @@ import { createControls } from "../../src/controls.js"
 import { openFeedbackModal } from "../../src/feedback-modal.js"
 import { mountReviewer } from "../../src/screens/reviewer.js"
 import { downloadFeedback } from "../../src/send-local.js"
+import { createStore } from "../../src/store.js"
+import { createFakeStore } from "./fake-store.js"
 import { pixelAt } from "./pixel.js"
 
 window.harness = {
@@ -21,5 +23,7 @@ window.harness = {
   openFeedbackModal,
   mountReviewer,
   downloadFeedback,
+  createStore,
+  createFakeStore,
   pixelAt,
 }
