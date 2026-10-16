@@ -2,26 +2,44 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { parseRoute } from "../../src/router.js"
 
-test("no parameters routes to home", () => {
-  assert.deepEqual(parseRoute(""), { screen: "home" })
-  assert.deepEqual(parseRoute("?"), { screen: "home" })
+test("no parameters and ?dev route to the developer screen", () => {
+  assert.deepEqual(parseRoute(""), { screen: "developer" })
+  assert.deepEqual(parseRoute("?dev"), { screen: "developer" })
+  assert.deepEqual(parseRoute("?code=oauth-code"), { screen: "developer" })
 })
 
-test("key routes to the reviewer screen in run mode by default", () => {
-  assert.deepEqual(parseRoute("?key=abc1234"), {
+test("r routes to the reviewer screen, run mode unless mode=test", () => {
+  assert.deepEqual(parseRoute("?r=ABC&mode=test"), {
     screen: "reviewer",
-    key: "abc1234",
+    shareId: "ABC",
+    mode: "test",
+  })
+  assert.deepEqual(parseRoute("?r=ABC"), {
+    screen: "reviewer",
+    shareId: "ABC",
     mode: "run",
+  })
+  assert.deepEqual(parseRoute("?r=ABC&mode=banana&__gt_embed=tok"), {
+    screen: "reviewer",
+    shareId: "ABC",
+    mode: "run",
+  })
+  assert.deepEqual(parseRoute("?r=%20%20"), { screen: "developer" })
+})
+
+test("program and session route to the inbox and session screens", () => {
+  assert.deepEqual(parseRoute("?dev&program=p1"), {
+    screen: "inbox",
+    programId: "p1",
+  })
+  assert.deepEqual(parseRoute("?session=s1"), {
+    screen: "session",
+    sessionId: "s1",
   })
 })
 
-test("mode=test is honoured, anything else means run", () => {
-  assert.equal(parseRoute("?key=abc1234&mode=test").mode, "test")
-  assert.equal(parseRoute("?key=abc1234&mode=run").mode, "run")
-  assert.equal(parseRoute("?key=abc1234&mode=banana").mode, "run")
-})
-
-test("key is trimmed and an empty key routes home", () => {
-  assert.equal(parseRoute("?key=%20abc1234%20").key, "abc1234")
-  assert.deepEqual(parseRoute("?key=%20%20"), { screen: "home" })
+test("the Phase 1 key route is gone", () => {
+  assert.deepEqual(parseRoute("?key=abc1234&mode=test"), {
+    screen: "developer",
+  })
 })

@@ -1,14 +1,21 @@
 export function parseRoute(search) {
   const params = new URLSearchParams(search)
-  const key = (params.get("key") || "").trim()
+  const value = name => (params.get(name) || "").trim()
 
-  if (key) {
+  const sessionId = value("session")
+  if (sessionId) return { screen: "session", sessionId }
+
+  const shareId = value("r")
+  if (shareId) {
     return {
       screen: "reviewer",
-      key,
+      shareId,
       mode: params.get("mode") === "test" ? "test" : "run",
     }
   }
 
-  return { screen: "home" }
+  const programId = value("program")
+  if (programId) return { screen: "inbox", programId }
+
+  return { screen: "developer" }
 }
