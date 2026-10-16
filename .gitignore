@@ -5,3 +5,5 @@ temp
 dist
 test/fixtures/build
 spikes/out
+supabase/.temp
+supabase/.branches
