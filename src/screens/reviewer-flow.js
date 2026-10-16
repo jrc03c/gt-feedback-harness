@@ -23,30 +23,17 @@ export async function runReviewer({
   session = window.sessionStorage,
   heartbeatMs = 60000,
 }) {
-  try {
-    await store.signInAnonymously()
-  } catch (error) {
+  const unavailable = error =>
     renderErrorBanner(
       root,
       `The feedback backend is unavailable: ${error.message}. Tell the developer.`,
     )
-    return
-  }
 
-  const resolved = await store.resolveShare(route.shareId)
-  if (!resolved) {
-    renderInvalidLinkBanner(root)
-    return
-  }
-
+  let resolved
   let sessionId = null
-  try {
-    sessionId = session.getItem(SESSION_KEY(route.shareId))
-  } catch {
-    sessionId = null
-  }
-  if (!sessionId) {
-    sessionId = await store.createSession({
+
+  async function startSession() {
+    const id = await store.createSession({
       programId: resolved.programId,
       shareId: route.shareId,
       mode: route.mode,
@@ -55,10 +42,29 @@ export async function runReviewer({
       viewport: { width: window.innerWidth, height: window.innerHeight },
     })
     try {
-      session.setItem(SESSION_KEY(route.shareId), sessionId)
+      session.setItem(SESSION_KEY(route.shareId), id)
     } catch {
       // Storage blocked: a reload will start a new session, which is acceptable.
     }
+    return id
+  }
+
+  try {
+    await store.signInAnonymously()
+    resolved = await store.resolveShare(route.shareId)
+    if (!resolved) {
+      renderInvalidLinkBanner(root)
+      return
+    }
+    try {
+      sessionId = session.getItem(SESSION_KEY(route.shareId))
+    } catch {
+      sessionId = null
+    }
+    if (!sessionId) sessionId = await startSession()
+  } catch (error) {
+    unavailable(error)
+    return
   }
 
   const heartbeat = setInterval(() => {
@@ -68,16 +74,31 @@ export async function runReviewer({
     once: true,
   })
 
+  async function storeItem(item) {
+    await store.touchSession(sessionId, {
+      reviewerName: item.reviewerName || "",
+    })
+    await store.sendItem(sessionId, item)
+  }
+
   await mountReviewer({
     root,
     route: { key: resolved.gtKey, mode: route.mode },
     assetBase,
     storage,
     sendFeedback: async item => {
-      await store.touchSession(sessionId, {
-        reviewerName: item.reviewerName || "",
-      })
-      await store.sendItem(sessionId, item)
+      try {
+        await storeItem(item)
+      } catch {
+        // The stored session may be stale (deleted, or the share regenerated).
+        try {
+          session.removeItem(SESSION_KEY(route.shareId))
+        } catch {
+          // Ignore blocked storage.
+        }
+        sessionId = await startSession()
+        await storeItem(item)
+      }
     },
   })
 }

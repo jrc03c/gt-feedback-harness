@@ -103,6 +103,12 @@ export function createFakeStore(seed = {}) {
     },
     async sendItem(sessionId, item) {
       record("sendItem")
+      if (!state.sessions.some(row => row.id === sessionId)) {
+        throw Object.assign(
+          new Error("new row violates row-level security policy"),
+          { code: "42501" },
+        )
+      }
       const id = uuid()
       const path = `${sessionId}/${id}.webp`
       state.screenshots.set(path, item.image.blob)

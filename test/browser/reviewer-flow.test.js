@@ -108,3 +108,52 @@ test("an unknown link shows the invalid-link banner and no program", async () =>
     )
   })
 })
+
+test("a stale stored session id is replaced on the first send", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)
+    await page.waitForFunction(() => window.fixtureReady === true)
+    await page.evaluate(() => {
+      sessionStorage.setItem(
+        "harness:session:SHARESHARESHARESHARESHAR",
+        "stale-id",
+      )
+      return window.run("SHARESHARESHARESHARESHAR", "test")
+    })
+    await page.waitForSelector(".program_container .main p")
+    await page.click(".harness-feedback-button")
+    await page.waitForSelector(".harness-modal")
+    await page.fill(".harness-text", "After stale")
+    await page.click('[data-action="send"]')
+    await page.waitForSelector(".harness-modal", { state: "detached" })
+    const result = await page.evaluate(() => ({
+      sessions: window.store.state.sessions,
+      items: window.store.state.items,
+      stored: sessionStorage.getItem(
+        "harness:session:SHARESHARESHARESHARESHAR",
+      ),
+    }))
+    assert.equal(result.sessions.length, 1)
+    assert.equal(result.items.length, 1)
+    assert.equal(result.items[0].session_id, result.sessions[0].id)
+    assert.equal(result.stored, result.sessions[0].id)
+  })
+})
+
+test("a backend failure shows the unavailable banner", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)
+    await page.waitForFunction(() => window.fixtureReady === true)
+    await page.evaluate(() => {
+      window.store.resolveShare = async () => {
+        throw new Error("offline")
+      }
+      return window.run("SHARESHARESHARESHARESHAR", "test")
+    })
+    await page.waitForSelector(".harness-banner")
+    const text = await page.locator(".harness-banner").innerText()
+    assert.match(text, /unavailable/)
+    assert.match(text, /offline/)
+    assert.equal(await page.locator(".program_container").count(), 0)
+  })
+})

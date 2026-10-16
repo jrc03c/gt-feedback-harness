@@ -239,3 +239,13 @@ test("missing user, and unknown ids for touch/resolve", async () => {
   await store.touchSession("nope", { reviewerName: "a" })
   await store.setResolved("nope", true)
 })
+
+test("sendItem rejects with an RLS error when the session does not exist", async () => {
+  const store = seeded()
+  await assert.rejects(store.sendItem("missing", item()), error => {
+    assert.equal(error.code, "42501")
+    assert.match(error.message, /row-level security/)
+    return true
+  })
+  assert.equal(store.state.items.length, 0)
+})
