@@ -6,6 +6,8 @@ import { mountProgram, createEmitter } from "../../src/gt-embed.js"
 import { createControls } from "../../src/controls.js"
 import { openFeedbackModal } from "../../src/feedback-modal.js"
 import { mountDeveloper } from "../../src/screens/developer.js"
+import { mountInbox } from "../../src/screens/inbox.js"
+import { mountSession } from "../../src/screens/session.js"
 import { mountReviewer } from "../../src/screens/reviewer.js"
 import { runReviewer } from "../../src/screens/reviewer-flow.js"
 import { downloadFeedback } from "../../src/send-local.js"
@@ -24,6 +26,8 @@ window.harness = {
   createControls,
   openFeedbackModal,
   mountDeveloper,
+  mountInbox,
+  mountSession,
   mountReviewer,
   runReviewer,
   downloadFeedback,

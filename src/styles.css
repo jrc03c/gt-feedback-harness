@@ -478,3 +478,74 @@ body {
   border-color: var(--harness-accent);
   color: #fff;
 }
+
+/* Inbox and session views */
+.harness-inbox table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.harness-inbox th,
+.harness-inbox td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 14px;
+}
+
+.harness-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+
+.harness-item.harness-resolved {
+  opacity: 0.6;
+}
+
+.harness-item-image {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.harness-item-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.harness-item-image svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.harness-item-text {
+  white-space: pre-wrap;
+  font:
+    14px system-ui,
+    sans-serif;
+  margin: 8px 0;
+}
+
+.harness-item dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  font-size: 13px;
+}
+
+.harness-item dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.harness-item-actions {
+  display: flex;
+  gap: 8px;
+}

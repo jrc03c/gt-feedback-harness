@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/test/fixtures/build/entry.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import "/test/fixtures/build/entry.js"
+      const canvas = document.createElement("canvas")
+      canvas.width = 400
+      canvas.height = 300
+      canvas.getContext("2d").fillStyle = "#dddddd"
+      canvas.getContext("2d").fillRect(0, 0, 400, 300)
+      const blob = await new Promise(resolve =>
+        canvas.toBlob(resolve, "image/webp"),
+      )
+      window.store = window.harness.createFakeStore({
+        user: { id: "dev-1", email: "dev@example.com", is_anonymous: false },
+        programs: [
+          {
+            id: "p-1",
+            owner_id: "dev-1",
+            gt_key: "abc1234",
+            label: "Demo",
+            share_id: "SHARESHARESHARESHARESHAR",
+            created_at: "2026-10-16T00:00:00Z",
+          },
+        ],
+        sessions: [
+          {
+            id: "s-1",
+            program_id: "p-1",
+            share_id: "SHARESHARESHARESHARESHAR",
+            reviewer_uid: "anon-1",
+            reviewer_name: "Alice",
+            mode: "test",
+            user_agent: "UA",
+            viewport: { width: 800, height: 600 },
+            started_at: "2026-10-16T01:00:00Z",
+            last_seen_at: "2026-10-16T01:05:00Z",
+          },
+          {
+            id: "s-2",
+            program_id: "p-1",
+            share_id: "SHARESHARESHARESHARESHAR",
+            reviewer_uid: "anon-2",
+            reviewer_name: "",
+            mode: "run",
+            started_at: "2026-10-16T02:00:00Z",
+            last_seen_at: "2026-10-16T02:00:30Z",
+          },
+        ],
+        items: [
+          {
+            id: "i-1",
+            session_id: "s-1",
+            created_at: "2026-10-16T01:02:00Z",
+            text: "Button is misaligned",
+            annotations: [
+              {
+                id: "p",
+                type: "pen",
+                points: [
+                  [0, 150],
+                  [400, 150],
+                ],
+              },
+            ],
+            context: {
+              lines: [{ from: 1, to: 3, program: "main" }],
+              runId: "run-123",
+              programName: "main",
+              nodeId: "n1",
+              variables: { name: "Alice", score: 42 },
+              variablesTruncated: false,
+              viewport: { width: 800, height: 600 },
+              userAgent: "UA",
+              capturedAt: "2026-10-16T01:02:00Z",
+            },
+            screenshot_path: "s-1/i-1.webp",
+            image_size: { width: 400, height: 300, scale: 1 },
+            resolved_at: null,
+          },
+          {
+            id: "i-2",
+            session_id: "s-1",
+            created_at: "2026-10-16T01:03:00Z",
+            text: "Second",
+            annotations: [],
+            context: {},
+            screenshot_path: "s-1/i-2.webp",
+            image_size: { width: 400, height: 300, scale: 1 },
+            resolved_at: "2026-10-16T01:04:00Z",
+          },
+        ],
+      })
+      window.store.state.screenshots.set("s-1/i-1.webp", blob)
+      window.store.state.screenshots.set("s-1/i-2.webp", blob)
+      window.mountInbox = () =>
+        window.harness.mountInbox({
+          root: document.getElementById("app"),
+          store: window.store,
+          programId: "p-1",
+        })
+      window.mountSession = id =>
+        window.harness.mountSession({
+          root: document.getElementById("app"),
+          store: window.store,
+          sessionId: id,
+        })
+      window.fixtureReady = true
+    </script>
+  </body>
+</html>
