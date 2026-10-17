@@ -11,6 +11,17 @@ function readName(storage) {
   }
 }
 
+// True when a send failed because the stored session can no longer take
+// items (deleted, or its row is not visible to this reviewer any more).
+export function isStaleSessionError(error) {
+  if (!error) return false
+  if (["42501", "23503", "PGRST116"].includes(error.code)) return true
+  if (String(error.statusCode) === "403") return true
+  return /row-level security|violates foreign key|not found/i.test(
+    error.message || "",
+  )
+}
+
 // Signs the reviewer in anonymously, turns the share id into a program key,
 // creates (or resumes) the session row, and mounts the Phase 1 reviewer
 // screen with a sendFeedback that stores items under that session.
@@ -75,9 +86,13 @@ export async function runReviewer({
   })
 
   async function storeItem(item) {
-    await store.touchSession(sessionId, {
-      reviewerName: item.reviewerName || "",
-    })
+    try {
+      await store.touchSession(sessionId, {
+        reviewerName: item.reviewerName || "",
+      })
+    } catch {
+      // Best effort: a failed name update must never block a send.
+    }
     await store.sendItem(sessionId, item)
   }
 
@@ -89,8 +104,10 @@ export async function runReviewer({
     sendFeedback: async item => {
       try {
         await storeItem(item)
-      } catch {
-        // The stored session may be stale (deleted, or the share regenerated).
+      } catch (error) {
+        // Only a stale session (deleted, or no longer visible) is replaced;
+        // anything else is rethrown so the modal offers Retry.
+        if (!isStaleSessionError(error)) throw error
         try {
           session.removeItem(SESSION_KEY(route.shareId))
         } catch {

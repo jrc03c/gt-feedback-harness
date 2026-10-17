@@ -150,6 +150,16 @@ export function createFakeStore(seed = {}) {
     async registerProgram({ gtKey, label }) {
       record("registerProgram")
       requireUser()
+      if (
+        state.programs.some(
+          p => p.owner_id === state.user.id && p.gt_key === gtKey.trim(),
+        )
+      ) {
+        throw Object.assign(
+          new Error("duplicate key value violates unique constraint"),
+          { code: "23505" },
+        )
+      }
       const program = {
         id: uuid(),
         owner_id: state.user.id,

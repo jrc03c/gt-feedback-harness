@@ -133,7 +133,10 @@ export async function mountDeveloper({
             label: String(data.get("label") || ""),
           })
         } catch (failure) {
-          error.textContent = failure.message
+          error.textContent =
+            failure.code === "23505"
+              ? "You already registered this program key."
+              : failure.message
           error.hidden = false
           return
         }
@@ -216,7 +219,7 @@ export async function mountDeveloper({
           .addEventListener("click", () => {
             if (
               !confirm(
-                "Regenerate the links? The old links stop working immediately. Stored feedback is kept.",
+                "Regenerate the links? New sessions cannot start with the old links. Sessions that are already open keep working until you delete them. Stored feedback is kept.",
               )
             )
               return

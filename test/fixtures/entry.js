@@ -15,7 +15,7 @@ import { createFakeStore } from "./fake-store.js"
 import { pixelAt } from "./pixel.js"
 
 window.harness = {
-  version: "phase-1",
+  version: "phase-2",
   createEditor,
   TOOLS,
   flattenToPng,

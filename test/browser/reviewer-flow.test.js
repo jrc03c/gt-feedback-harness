@@ -140,6 +140,52 @@ test("a stale stored session id is replaced on the first send", async () => {
   })
 })
 
+test("a transient send failure does not create a second session", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl, "SHARESHARESHARESHARESHAR", "test")
+    await page.waitForSelector(".program_container .main p")
+    await page.evaluate(() => {
+      const original = window.store.sendItem
+      let failed = false
+      window.store.sendItem = async (...args) => {
+        if (!failed) {
+          failed = true
+          throw new Error("network down")
+        }
+        return original(...args)
+      }
+    })
+    await page.click(".harness-feedback-button")
+    await page.waitForSelector(".harness-modal")
+    await page.fill(".harness-text", "Flaky network")
+    await page.click('[data-action="send"]')
+    await page.locator(".harness-modal .harness-error").waitFor({
+      state: "visible",
+    })
+    assert.match(
+      await page.locator(".harness-modal .harness-error").innerText(),
+      /network down/,
+    )
+    assert.equal(
+      await page.locator('.harness-modal [data-action="send"]').innerText(),
+      "Retry",
+    )
+    assert.equal(
+      await page.evaluate(() => window.store.state.sessions.length),
+      1,
+    )
+    await page.click('[data-action="send"]')
+    await page.waitForSelector(".harness-modal", { state: "detached" })
+    const result = await page.evaluate(() => ({
+      sessions: window.store.state.sessions,
+      items: window.store.state.items,
+    }))
+    assert.equal(result.sessions.length, 1)
+    assert.equal(result.items.length, 1)
+    assert.equal(result.items[0].session_id, result.sessions[0].id)
+  })
+})
+
 test("a backend failure shows the unavailable banner", async () => {
   await withPage(async ({ page, baseUrl }) => {
     await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)

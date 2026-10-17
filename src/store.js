@@ -30,6 +30,25 @@ export function createStore({
     return user
   }
 
+  const PAGE = 1000
+
+  // Removes every screenshot in the session's folder, then the row. Storage
+  // lists at most PAGE objects per call, so collect all pages before removing.
+  async function deleteSession(sessionId) {
+    const bucket = () => client.storage.from(SCREENSHOT_BUCKET)
+    const paths = []
+    for (let offset = 0; ; offset += PAGE) {
+      const objects =
+        unwrap(await bucket().list(sessionId, { limit: PAGE, offset })) || []
+      paths.push(...objects.map(o => `${sessionId}/${o.name}`))
+      if (objects.length < PAGE) break
+    }
+    for (let i = 0; i < paths.length; i += PAGE) {
+      unwrap(await bucket().remove(paths.slice(i, i + PAGE)))
+    }
+    unwrap(await client.from("sessions").delete().eq("id", sessionId))
+  }
+
   return {
     client,
 
@@ -179,7 +198,7 @@ export function createStore({
             .select("id")
             .eq("program_id", programId),
         ) || []
-      for (const session of sessions) await this.deleteSession(session.id)
+      for (const session of sessions) await deleteSession(session.id)
       unwrap(await client.from("programs").delete().eq("id", programId))
     },
     async listSessions(programId) {
@@ -228,18 +247,6 @@ export function createStore({
           .eq("id", itemId),
       )
     },
-    async deleteSession(sessionId) {
-      const objects =
-        unwrap(await client.storage.from(SCREENSHOT_BUCKET).list(sessionId)) ||
-        []
-      if (objects.length) {
-        unwrap(
-          await client.storage
-            .from(SCREENSHOT_BUCKET)
-            .remove(objects.map(o => `${sessionId}/${o.name}`)),
-        )
-      }
-      unwrap(await client.from("sessions").delete().eq("id", sessionId))
-    },
+    deleteSession,
   }
 }

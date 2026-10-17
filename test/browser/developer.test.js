@@ -103,6 +103,23 @@ test("registering a program adds a card, regenerating changes links, deleting re
   })
 })
 
+test("registering a key you already registered shows a friendly error", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    await page.fill('.harness-register input[name="key"]', "abc1234")
+    await page.click('.harness-register button[type="submit"]')
+    const error = page.locator(".harness-register .harness-error")
+    await error.waitFor({ state: "visible" })
+    assert.equal(
+      await error.innerText(),
+      "You already registered this program key.",
+    )
+    assert.equal(await page.locator(".harness-program-card").count(), 1)
+  })
+})
+
 test("sign out returns to the prompt", async () => {
   await withPage(async ({ page, baseUrl }) => {
     await open(page, baseUrl)

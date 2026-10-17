@@ -165,13 +165,45 @@ test("deleteSession removes the screenshots in its folder before the row", async
   })
   await s.deleteSession("s1")
   const storageSteps = client.stepsOf("storage", "screenshots")
-  assert.deepEqual(storageSteps[0][0], ["list", ["s1"]])
+  assert.deepEqual(storageSteps[0][0], [
+    "list",
+    ["s1", { limit: 1000, offset: 0 }],
+  ])
   assert.deepEqual(storageSteps[1][0], ["remove", [["s1/a.webp", "s1/b.webp"]]])
   const [rowSteps] = client.stepsOf("from", "sessions")
   assert.deepEqual(rowSteps, [
     ["delete", []],
     ["eq", ["id", "s1"]],
   ])
+})
+
+test("deleteSession pages through more than 1000 screenshots", async () => {
+  const names = Array.from({ length: 1500 }, (_, i) => ({ name: `${i}.webp` }))
+  const { client, store: s } = store({
+    "storage:screenshots": record => {
+      const [method, args] = record.steps[0]
+      if (method !== "list") return { data: [], error: null }
+      const { limit, offset } = args[1]
+      return { data: names.slice(offset, offset + limit), error: null }
+    },
+    "from:sessions": { data: null, error: null },
+  })
+  await s.deleteSession("s1")
+  const steps = client.stepsOf("storage", "screenshots").map(st => st[0])
+  const lists = steps.filter(([method]) => method === "list")
+  assert.deepEqual(
+    lists.map(([, args]) => args[1]),
+    [
+      { limit: 1000, offset: 0 },
+      { limit: 1000, offset: 1000 },
+    ],
+  )
+  const removed = steps
+    .filter(([method]) => method === "remove")
+    .flatMap(([, args]) => args[0])
+  assert.equal(removed.length, 1500)
+  assert.equal(new Set(removed).size, 1500)
+  assert.ok(removed.every(path => path.startsWith("s1/")))
 })
 
 test("setResolved writes or clears resolved_at", async () => {
