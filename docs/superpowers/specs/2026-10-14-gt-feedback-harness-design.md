@@ -13,7 +13,7 @@ It is a feedback harness, not a testing harness. The auto-runner on the `main` b
 - **Backend: Supabase free tier** (Postgres, Storage, Auth). Chosen for zero cost with no card on file. Firebase was rejected because its card-free plan excludes Storage and Functions, and its paid plan has no hard spending cap.
 - **Front-end hosting: GitHub Pages**, from a public repo, deployed by GitHub Actions. Vercel was rejected because its free tier is limited to non-commercial use and would be another account.
 - **Front-end stack: vanilla JavaScript modules bundled with esbuild.** No framework. Dependencies: the Supabase JS client, rrweb and rrweb-player, and a DOM-to-image library (modern-screenshot to start).
-- **Data path: clients write directly to Supabase under row-level security.** No server code of our own. Reviewers are signed in anonymously; developers sign in with Google.
+- **Data path: clients write directly to Supabase under row-level security.** No server code of our own. Reviewers are signed in anonymously; developers use GitHub sign-in (Google can be added later).
 - **Access model.** Developers must sign in to register programs and to view feedback. Reviewers never sign in. A registered program gets a long random share id and two links, one per GT mode (`run` and `test`). Feedback is stored under the registering developer. The harness does not try to mirror GT's own access control.
 - **Routing uses query strings, not paths or hashes.** See "Why query-string routing" below.
 - **Recording is on by default**, with a visible indicator and an off switch. If storage limits bite, switch to opt-in.
@@ -202,7 +202,7 @@ Line numbers are shown as text ("program `main`, lines 42 to 47"). GT's editor h
 
 ## Failure handling
 
-- Backend unreachable: the reviewer page shows a banner saying the harness backend is unavailable and to tell the developer. The GT program still runs.
+- Backend unreachable: the reviewer page shows a banner saying the harness backend is unavailable and to tell the developer. The GT program cannot run, because the harness needs the backend to resolve the share link into a program key, so the banner is shown instead.
 - Chunk upload fails: retried with backoff. The buffer is capped at 5 MB; on overflow the oldest events are dropped and `recording_gap` is set.
 - Session deleted mid-run: writes fail, the feedback button shows an error, nothing crashes.
 - Capture throws: the modal opens with a gray placeholder and a note so the reviewer can still type.
