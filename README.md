@@ -54,11 +54,12 @@ The project's settings live in the Supabase dashboard, not in this repository. `
 - **Authentication, Sign In / Providers**: enable Anonymous sign-ins, and enable the GitHub provider with the callback URL `https://<ref>.supabase.co/auth/v1/callback` (where `<ref>` is the project ref) set on the GitHub OAuth app.
 - **Authentication, URL Configuration**: set the Site URL to `https://jrc03c.github.io/gt-feedback-harness/` and add `https://jrc03c.github.io/gt-feedback-harness/**` to the redirect allow list.
 
-The deploy workflow needs three repository secrets:
+The deploy workflow needs two repository secrets, the same values as the local `.env` file described below:
 
-- `SUPABASE_ACCESS_TOKEN`: a Supabase access token scoped to Project Settings, API Keys, and API Key Secrets (read).
-- `SUPABASE_PROJECT_REF`: the project ref.
+- `SUPABASE_DB_URL_TEMPLATE`: the session-pooler connection string with the literal `[YOUR-PASSWORD]` placeholder.
 - `SUPABASE_DB_PASSWORD`: the database password.
+
+The workflow pushes migrations through the pooler rather than `supabase link`, because the direct database host is IPv6-only and GitHub's runners have no IPv6.
 
 Local database tools read a `.env` file at the repository root (it is git-ignored; never commit it):
 
@@ -67,7 +68,7 @@ SUPABASE_DB_URL_TEMPLATE=<the session-pooler connection string, with the literal
 SUPABASE_DB_PASSWORD=<the database password>
 ```
 
-`scripts/db-url.mjs` substitutes the encoded password into the template (a `SUPABASE_DB_URL` environment variable overrides both). `npm run test:db` uses it to run the policy tests, and migrations are pushed with:
+`scripts/db-url.mjs` substitutes the encoded password into the template; both values can also be set as environment variables, and a `SUPABASE_DB_URL` environment variable overrides everything. `npm run test:db` uses it to run the policy tests, and migrations are pushed with:
 
 ```
 npx supabase db push --db-url "$(node -e 'import("./scripts/db-url.mjs").then(m => console.log(m.databaseUrl()))')"
