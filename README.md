@@ -14,7 +14,7 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 
 4. Copy the run link or the test link and send it to reviewers.
 
-Feedback appears in your inbox. Each item shows the annotated screenshot, the typed text, the source lines that were on screen, and the run's variables. You can mark items resolved, download the annotated PNG, and delete sessions.
+Feedback appears in your inbox. Sessions with unresolved items are flagged, and the table sorts by any column when you click its header. Each item shows the annotated screenshot, the typed text, the source lines that were on screen, and the run's variables. Click a screenshot to see it full size or open it in a new tab. You can mark items resolved (they turn gray), download the annotated PNG, and delete sessions.
 
 ### For reviewers
 

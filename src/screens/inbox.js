@@ -1,5 +1,14 @@
 import { withDeveloper } from "./developer.js"
 import { formatDate, formatDuration, programLabel } from "../format.js"
+import { sortSessions } from "./inbox-sort.js"
+
+const COLUMNS = [
+  ["reviewer", "Reviewer"],
+  ["mode", "Mode"],
+  ["started", "Started"],
+  ["duration", "Duration"],
+  ["feedback", "Feedback"],
+]
 
 export async function mountInbox({
   root,
@@ -21,7 +30,7 @@ export async function mountInbox({
           <h1></h1>
           <label><input type="checkbox" /> Only sessions with unresolved items</label>
           <table>
-            <thead><tr><th>Reviewer</th><th>Mode</th><th>Started</th><th>Duration</th><th>Feedback</th><th></th></tr></thead>
+            <thead><tr></tr></thead>
             <tbody></tbody>
           </table>
           <p class="harness-error" hidden></p>
@@ -32,15 +41,60 @@ export async function mountInbox({
       const tbody = root.querySelector("tbody")
       const errorBox = root.querySelector(".harness-error")
       const filter = root.querySelector("input[type=checkbox]")
+      let sort = { column: "started", direction: "desc" }
+
+      const headRow = root.querySelector("thead tr")
+      for (const [column, label] of COLUMNS) {
+        const th = document.createElement("th")
+        th.dataset.sort = column
+        const button = document.createElement("button")
+        button.type = "button"
+        button.textContent = label
+        button.addEventListener("click", () => {
+          sort =
+            sort.column === column
+              ? { column, direction: sort.direction === "asc" ? "desc" : "asc" }
+              : {
+                  column,
+                  direction:
+                    column === "reviewer" || column === "mode" ? "asc" : "desc",
+                }
+          draw()
+        })
+        th.appendChild(button)
+        headRow.appendChild(th)
+      }
+      headRow.appendChild(document.createElement("th"))
+
+      function drawHeaders() {
+        for (const th of headRow.querySelectorAll("th[data-sort]")) {
+          const active = th.dataset.sort === sort.column
+          if (active)
+            th.setAttribute(
+              "aria-sort",
+              sort.direction === "asc" ? "ascending" : "descending",
+            )
+          else th.removeAttribute("aria-sort")
+        }
+      }
 
       function draw() {
+        drawHeaders()
         tbody.replaceChildren()
-        const shown = filter.checked
-          ? sessions.filter(s => s.unresolved_count > 0)
-          : sessions
+        const shown = sortSessions(
+          filter.checked
+            ? sessions.filter(s => s.unresolved_count > 0)
+            : sessions,
+          sort.column,
+          sort.direction,
+        )
         root.querySelector(".harness-empty").hidden = shown.length > 0
         for (const session of shown) {
           const row = document.createElement("tr")
+          row.classList.toggle(
+            "harness-unresolved",
+            session.unresolved_count > 0,
+          )
           row.innerHTML = `<td></td><td></td><td></td><td></td><td></td><td><a></a> <button type="button" data-action="delete">Delete</button></td>`
           const cells = row.querySelectorAll("td")
           cells[0].textContent = session.reviewer_name || "Anonymous"
@@ -50,11 +104,14 @@ export async function mountInbox({
             session.started_at,
             session.last_seen_at,
           )
-          cells[4].textContent =
-            `${session.item_count} item${session.item_count === 1 ? "" : "s"}` +
-            (session.unresolved_count
-              ? ` (${session.unresolved_count} unresolved)`
-              : "")
+          cells[4].className = "harness-feedback-cell"
+          cells[4].textContent = `${session.item_count} item${session.item_count === 1 ? "" : "s"} `
+          if (session.unresolved_count) {
+            const badge = document.createElement("span")
+            badge.className = "harness-badge"
+            badge.textContent = `${session.unresolved_count} unresolved`
+            cells[4].appendChild(badge)
+          }
           const open = row.querySelector("a")
           open.href = `?session=${encodeURIComponent(session.id)}`
           open.textContent = "Open"

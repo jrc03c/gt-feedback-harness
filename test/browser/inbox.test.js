@@ -17,7 +17,7 @@ test("the inbox lists sessions newest first with counts, filters, and deletes", 
     const rows = await page.locator(".harness-inbox tbody tr").allInnerTexts()
     assert.equal(rows.length, 2)
     assert.match(rows[0], /Anonymous.*run.*0 items/s)
-    assert.match(rows[1], /Alice.*test.*5 min.*3 items \(2 unresolved\)/s)
+    assert.match(rows[1], /Alice.*test.*5 min.*3 items.*2 unresolved/s)
     assert.equal(
       await page.locator('.harness-inbox a[href="?session=s-1"]').count(),
       1,
@@ -36,6 +36,120 @@ test("the inbox lists sessions newest first with counts, filters, and deletes", 
     assert.ok(
       await page.evaluate(() => window.store.calls.includes("deleteSession")),
     )
+  })
+})
+
+test("clicking a column header sorts the rows and clicking it again reverses them", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountInbox())
+    await page.waitForSelector(".harness-inbox tbody tr")
+    const firstCells = () =>
+      page.locator(".harness-inbox tbody tr td:first-child").allInnerTexts()
+    const sortState = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll(".harness-inbox th")].map(
+          th => th.getAttribute("aria-sort") || "",
+        ),
+      )
+    assert.deepEqual(await firstCells(), ["Anonymous", "Alice"])
+    assert.deepEqual(await sortState(), ["", "", "descending", "", "", ""])
+
+    await page.locator('.harness-inbox th[data-sort="reviewer"] button').click()
+    assert.deepEqual(await firstCells(), ["Alice", "Anonymous"])
+    assert.deepEqual(await sortState(), ["ascending", "", "", "", "", ""])
+
+    await page.locator('.harness-inbox th[data-sort="reviewer"] button').click()
+    assert.deepEqual(await firstCells(), ["Anonymous", "Alice"])
+    assert.deepEqual(await sortState(), ["descending", "", "", "", "", ""])
+
+    await page.locator('.harness-inbox th[data-sort="feedback"] button').click()
+    assert.deepEqual(await firstCells(), ["Alice", "Anonymous"])
+    assert.deepEqual(await sortState(), ["", "", "", "", "descending", ""])
+  })
+})
+
+test("sessions with unresolved items are flagged in the table", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountInbox())
+    await page.waitForSelector(".harness-inbox tbody tr")
+    const flagged = page.locator(".harness-inbox tbody tr.harness-unresolved")
+    assert.equal(await flagged.count(), 1)
+    assert.match(await flagged.innerText(), /^Alice/)
+    assert.equal(
+      await flagged.locator(".harness-badge").innerText(),
+      "2 unresolved",
+    )
+    assert.equal(
+      await page.locator(".harness-inbox tbody tr .harness-badge").count(),
+      1,
+    )
+    const weight = await flagged
+      .locator("td:first-child")
+      .evaluate(td => getComputedStyle(td).fontWeight)
+    assert.equal(weight, "700")
+  })
+})
+
+test("clicking a screenshot opens it full size, and it can be opened in a new tab", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountSession("s-1"))
+    await page.waitForSelector(".harness-item img")
+    assert.equal(await page.locator("dialog.harness-lightbox[open]").count(), 0)
+
+    await page.locator(".harness-item-image").first().click()
+    const lightbox = page.locator("dialog.harness-lightbox[open]")
+    assert.equal(await lightbox.count(), 1)
+    const natural = await lightbox
+      .locator("img")
+      .evaluate(img => [img.width, img.height])
+    const stored = await page
+      .locator(".harness-item img")
+      .first()
+      .evaluate(img => [img.width, img.height])
+    assert.deepEqual(natural, stored)
+    assert.equal(await lightbox.locator("svg[data-mode=static]").count(), 1)
+
+    const [popup] = await Promise.all([
+      page.waitForEvent("popup"),
+      lightbox.locator('[data-action="open-tab"]').click(),
+    ])
+    assert.match(popup.url(), /^blob:/)
+    await popup.close()
+
+    await page.keyboard.press("Escape")
+    assert.equal(await page.locator("dialog.harness-lightbox[open]").count(), 0)
+
+    await page.locator(".harness-item-image").first().click()
+    await page.locator("dialog.harness-lightbox [data-action=close]").click()
+    assert.equal(await page.locator("dialog.harness-lightbox[open]").count(), 0)
+  })
+})
+
+test("resolved items are grayed out while their buttons stay legible", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountSession("s-1"))
+    await page.waitForSelector(".harness-item img")
+    const resolved = page.locator(".harness-item.harness-resolved").first()
+    const styles = await resolved.evaluate(card => ({
+      background: getComputedStyle(card).backgroundColor,
+      cardFilter: getComputedStyle(card).filter,
+      cardOpacity: getComputedStyle(card).opacity,
+      imageFilter: getComputedStyle(card.querySelector(".harness-item-image"))
+        .filter,
+      textFilter: getComputedStyle(card.querySelector(".harness-item-text"))
+        .filter,
+      buttonOpacity: getComputedStyle(card.querySelector("button")).opacity,
+    }))
+    assert.equal(styles.background, "rgb(243, 243, 243)")
+    assert.equal(styles.cardFilter, "none")
+    assert.equal(styles.cardOpacity, "1")
+    assert.match(styles.imageFilter, /grayscale\(1\)/)
+    assert.match(styles.textFilter, /grayscale\(1\)/)
+    assert.equal(styles.buttonOpacity, "1")
   })
 })
 

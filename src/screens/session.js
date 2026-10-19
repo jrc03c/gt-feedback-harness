@@ -23,6 +23,14 @@ export async function mountSession({ root, store, sessionId }) {
           <h1></h1>
           <p class="harness-session-meta"></p>
           <section class="harness-items"></section>
+          <dialog class="harness-lightbox">
+            <p class="harness-lightbox-actions">
+              <button type="button" data-action="open-tab">Open in new tab</button>
+              <button type="button" data-action="close">Close</button>
+            </p>
+            <div class="harness-lightbox-scroll"><div class="harness-lightbox-image"></div></div>
+            <p class="harness-error" hidden></p>
+          </dialog>
         </main>`
       const back = root.querySelector("a")
       back.href = `?dev&program=${encodeURIComponent(session.program_id)}`
@@ -37,15 +45,70 @@ export async function mountSession({ root, store, sessionId }) {
         empty.textContent = "No feedback was sent in this session."
         list.appendChild(empty)
       }
+      const lightbox = createLightbox(root.querySelector(".harness-lightbox"))
       const cards = await Promise.all(
-        items.map(item => itemCard(item, program, store)),
+        items.map(item => itemCard(item, program, store, lightbox)),
       )
       for (const card of cards) list.appendChild(card)
     },
   })
 }
 
-async function itemCard(item, program, store) {
+// One dialog per session view, refilled for whichever screenshot was clicked.
+// The image shows at its stored size and scrolls if it is bigger than the
+// window; "Open in new tab" flattens it to a PNG, which the browser can then
+// zoom and save like any other image.
+function createLightbox(dialog) {
+  const imageBox = dialog.querySelector(".harness-lightbox-image")
+  const errorBox = dialog.querySelector(".harness-error")
+  const openTab = dialog.querySelector('[data-action="open-tab"]')
+  let current = null
+  let tabUrl = null
+
+  dialog
+    .querySelector('[data-action="close"]')
+    .addEventListener("click", () => dialog.close())
+  dialog.addEventListener("click", event => {
+    if (event.target === dialog) dialog.close()
+  })
+  openTab.addEventListener("click", async () => {
+    if (!current) return
+    openTab.disabled = true
+    errorBox.hidden = true
+    try {
+      const png = await flattenToPng(current)
+      if (tabUrl) URL.revokeObjectURL(tabUrl)
+      tabUrl = URL.createObjectURL(png)
+      window.open(tabUrl, "_blank")
+    } catch (error) {
+      errorBox.textContent = `Could not build the PNG: ${error.message}`
+      errorBox.hidden = false
+    } finally {
+      openTab.disabled = false
+    }
+  })
+
+  return {
+    open({ imageUrl, imageSize, annotations }) {
+      current = { imageUrl, imageSize, annotations }
+      errorBox.hidden = true
+      const img = document.createElement("img")
+      img.src = imageUrl
+      img.width = imageSize.width
+      img.height = imageSize.height
+      img.alt = "Screenshot"
+      imageBox.style.width = `${imageSize.width}px`
+      imageBox.style.height = `${imageSize.height}px`
+      imageBox.replaceChildren(
+        img,
+        toDom(renderTree(annotations, imageSize, { mode: "static" })),
+      )
+      dialog.showModal()
+    },
+  }
+}
+
+async function itemCard(item, program, store, lightbox) {
   const card = document.createElement("article")
   card.className = "harness-item"
   card.classList.toggle("harness-resolved", Boolean(item.resolved_at))
@@ -84,6 +147,22 @@ async function itemCard(item, program, store) {
       wrap.appendChild(
         toDom(renderTree(item.annotations || [], size, { mode: "static" })),
       )
+      wrap.title = "Click to view full size"
+      wrap.tabIndex = 0
+      wrap.setAttribute("role", "button")
+      const show = () =>
+        lightbox.open({
+          imageUrl,
+          imageSize: size,
+          annotations: item.annotations || [],
+        })
+      wrap.addEventListener("click", show)
+      wrap.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          show()
+        }
+      })
     } catch (error) {
       card.querySelector(".harness-item-image").textContent =
         `Screenshot unavailable: ${error.message}`
