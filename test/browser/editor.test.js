@@ -58,7 +58,7 @@ test("callout tool creates a note at the click, focused for typing", async () =>
     let [callout] = await annotations(page)
     assert.equal(callout.type, "callout")
     assert.deepEqual(callout.anchor, [100, 200])
-    assert.deepEqual(callout.box, { x: 140, y: 90, w: 180, h: 72 })
+    assert.deepEqual(callout.box, { x: 140, y: 90, w: 220, h: 68 })
 
     const focused = await page.evaluate(() =>
       document.activeElement.getAttribute("data-role"),
@@ -68,7 +68,7 @@ test("callout tool creates a note at the click, focused for typing", async () =>
       const style = getComputedStyle(document.activeElement)
       return [style.fontSize, style.lineHeight]
     })
-    assert.deepEqual(font, ["16px", "20px"])
+    assert.deepEqual(font, ["20px", "26px"])
 
     await page.keyboard.type("Hello")
     ;[callout] = await annotations(page)
@@ -109,16 +109,60 @@ test("select tool moves a callout box, its anchor, and resizes it", async () => 
 
     await drag(page, [142, 92], [162, 112])
     let [callout] = await annotations(page)
-    assert.deepEqual(callout.box, { x: 160, y: 110, w: 180, h: 72 })
+    assert.deepEqual(callout.box, { x: 160, y: 110, w: 220, h: 68 })
     assert.deepEqual(callout.anchor, [100, 200])
 
     await drag(page, [100, 200], [120, 220])
     ;[callout] = await annotations(page)
     assert.deepEqual(callout.anchor, [120, 220])
 
-    await drag(page, [334, 176], [364, 186])
+    // The handle changes the width; the height always fits the text.
+    await drag(page, [374, 172], [354, 182])
     ;[callout] = await annotations(page)
-    assert.deepEqual(callout.box, { x: 160, y: 110, w: 210, h: 82 })
+    assert.deepEqual(callout.box, { x: 160, y: 110, w: 200, h: 68 })
+  })
+})
+
+const textBox = page =>
+  page.evaluate(() => {
+    const div = document.querySelector("[data-role=text]")
+    return { scrollHeight: div.scrollHeight, clientHeight: div.clientHeight }
+  })
+
+test("typing more lines than fit grows the callout box so nothing is clipped", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "callout")
+    await page.mouse.click(100, 200)
+    await page.keyboard.type("one\ntwo\nthree\nfour")
+    const [callout] = await annotations(page)
+    assert.equal(callout.text, "one\ntwo\nthree\nfour")
+    assert.equal(callout.box.h, 120)
+    const box = await textBox(page)
+    assert.ok(box.scrollHeight <= box.clientHeight, JSON.stringify(box))
+  })
+})
+
+test("long text wraps in the editor and the static renderer breaks the same lines", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openEditor(page, baseUrl)
+    await setTool(page, "callout")
+    await page.mouse.click(100, 200)
+    await page.keyboard.type(
+      "The quick brown fox jumps over the lazy dog while the editor keeps every word visible inside the box.",
+    )
+    const [callout] = await annotations(page)
+    const box = await textBox(page)
+    assert.ok(box.scrollHeight <= box.clientHeight, JSON.stringify(box))
+    const staticLines = await page.evaluate(shape => {
+      const svg = window.harness.toSvgString(
+        window.harness.renderTree([shape], { width: 400, height: 300 }),
+      )
+      return svg.match(/<tspan/g).length
+    }, callout)
+    assert.ok(staticLines >= 4, `wrapped into ${staticLines} lines`)
+    assert.equal(staticLines * 26, box.scrollHeight)
+    assert.equal(callout.box.h, staticLines * 26 + 16)
   })
 })
 
@@ -565,7 +609,7 @@ test("a mixed group drag keeps a selected callout inside the image", async () =>
     await setTool(page, "callout")
     await page.mouse.click(100, 200)
     await page.evaluate(() => document.activeElement.blur())
-    // Callout box: x 140..320, so it can move right by at most 80, while the
+    // Callout box: x 140..360, so it can move right by at most 40, while the
     // stroke alone could move by 340.
     await page.mouse.click(40, 280)
     await withKey(page, "Shift", () => page.mouse.click(143, 120))
@@ -574,11 +618,11 @@ test("a mixed group drag keeps a selected callout inside the image", async () =>
     await drag(page, [40, 280], [300, 280])
     const [stroke, callout] = await annotations(page)
     assert.ok(callout.box.x + callout.box.w <= 400, JSON.stringify(callout))
-    assert.equal(callout.box.x, 220)
-    assert.deepEqual(callout.anchor, [180, 200])
+    assert.equal(callout.box.x, 180)
+    assert.deepEqual(callout.anchor, [140, 200])
     assert.deepEqual(rounded(stroke.points), [
+      [60, 280],
       [100, 280],
-      [140, 280],
     ])
   })
 })

@@ -33,13 +33,13 @@ test("createStroke copies points and assigns an id", () => {
 test("createCallout places the box up and to the right of the anchor", () => {
   const callout = createCallout([10, 200], image)
   assert.deepEqual(callout.anchor, [10, 200])
-  assert.deepEqual(callout.box, { x: 50, y: 90, w: 180, h: 72 })
+  assert.deepEqual(callout.box, { x: 50, y: 90, w: 220, h: 68 })
   assert.equal(callout.text, "")
 })
 
 test("createCallout clamps the box inside the image", () => {
   const callout = createCallout([390, 20], image)
-  assert.deepEqual(callout.box, { x: 220, y: 0, w: 180, h: 72 })
+  assert.deepEqual(callout.box, { x: 180, y: 0, w: 220, h: 68 })
 })
 
 test("clampBox keeps boxes inside and shrinks oversized ones", () => {
@@ -74,7 +74,7 @@ test("translateShape moves strokes and callouts", () => {
   const callout = createCallout([10, 200], image)
   const moved = translateShape(callout, 1, 2)
   assert.deepEqual(moved.anchor, [11, 202])
-  assert.deepEqual(moved.box, { x: 51, y: 92, w: 180, h: 72 })
+  assert.deepEqual(moved.box, { x: 51, y: 92, w: 220, h: 68 })
 })
 
 test("strokeBounds is the bounding box of the points", () => {
@@ -300,11 +300,11 @@ test("history snapshots are copies", () => {
 
 test("CALLOUT_DEFAULTS are the documented values", () => {
   assert.deepEqual(CALLOUT_DEFAULTS, {
-    width: 180,
-    height: 72,
+    width: 220,
+    height: 68,
     offsetX: 40,
     offsetY: -110,
-    minWidth: 80,
-    minHeight: 40,
+    minWidth: 100,
+    minHeight: 68,
   })
 })

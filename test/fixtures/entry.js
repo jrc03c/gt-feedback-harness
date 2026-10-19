@@ -1,6 +1,7 @@
 import "../../src/styles.css"
 import { createEditor, TOOLS } from "../../src/annotations/editor.js"
 import { flattenToPng } from "../../src/annotations/flatten.js"
+import { renderTree, toSvgString } from "../../src/annotations/render.js"
 import { captureViewport } from "../../src/capture.js"
 import { mountProgram, createEmitter } from "../../src/gt-embed.js"
 import { createControls } from "../../src/controls.js"
@@ -19,6 +20,8 @@ window.harness = {
   createEditor,
   TOOLS,
   flattenToPng,
+  renderTree,
+  toSvgString,
   captureViewport,
   mountProgram,
   createEmitter,

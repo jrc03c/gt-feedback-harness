@@ -4,12 +4,12 @@ export const STYLES = {
 }
 
 export const CALLOUT_DEFAULTS = {
-  width: 180,
-  height: 72,
+  width: 220,
+  height: 68,
   offsetX: 40,
   offsetY: -110,
-  minWidth: 80,
-  minHeight: 40,
+  minWidth: 100,
+  minHeight: 68,
 }
 
 export function createId() {

@@ -3,6 +3,7 @@ import {
   clampBox,
   clampPoint,
   clone,
+  connector,
   createCallout,
   createHistory,
   createStroke,
@@ -11,7 +12,14 @@ import {
   thinPath,
   translateShape,
 } from "./model.js"
-import { SVG_NS, renderTree, toDom } from "./render.js"
+import {
+  RESIZE_SIZE,
+  SVG_NS,
+  TEXT_PADDING,
+  fitCallout,
+  renderTree,
+  toDom,
+} from "./render.js"
 
 export const TOOLS = ["select", "pen", "highlight", "callout"]
 
@@ -267,17 +275,16 @@ export function createEditor({
         ),
       })
     } else if (drag.role === "resize") {
-      replace({
+      // The handle sets the width; the height always fits the text.
+      const widened = {
         ...shape,
-        box: clampBox(
-          {
-            ...shape.box,
-            w: Math.max(CALLOUT_DEFAULTS.minWidth, shape.box.w + dx),
-            h: Math.max(CALLOUT_DEFAULTS.minHeight, shape.box.h + dy),
-          },
-          image,
-        ),
-      })
+        box: {
+          ...shape.box,
+          w: Math.max(CALLOUT_DEFAULTS.minWidth, shape.box.w + dx),
+        },
+      }
+      const fitted = fitCallout(widened)
+      replace({ ...fitted, box: clampBox(fitted.box, image) })
     } else {
       // A stroke's hit path or a callout's connector (no data-role, so the
       // role defaulted to "shape"): move the whole selection. Limit dx/dy by
@@ -363,9 +370,42 @@ export function createEditor({
     const id = event.target.closest("[data-id]").getAttribute("data-id")
     const shape = find(id)
     if (!shape) return
-    replace({ ...shape, text: event.target.innerText.replace(/\n$/, "") })
+    const fitted = fitCallout({
+      ...shape,
+      text: event.target.innerText.replace(/\n$/, ""),
+    })
+    const next = { ...fitted, box: clampBox(fitted.box, image) }
+    replace(next)
+    // Re-rendering would drop the caret, so the box is resized in place.
+    syncCalloutBox(event.target.closest("[data-id]"), next)
     textDirty = true
     onChange(clone(state))
+  }
+
+  function syncCalloutBox(group, shape) {
+    const { box } = shape
+    const set = (element, attrs) => {
+      if (!element) return
+      for (const [name, value] of Object.entries(attrs))
+        element.setAttribute(name, String(value))
+    }
+    set(group.querySelector("[data-role=box]"), {
+      x: box.x,
+      y: box.y,
+      width: box.w,
+      height: box.h,
+    })
+    set(group.querySelector("foreignObject"), {
+      x: box.x + TEXT_PADDING,
+      y: box.y + TEXT_PADDING,
+      width: Math.max(1, box.w - 2 * TEXT_PADDING),
+      height: Math.max(1, box.h - 2 * TEXT_PADDING),
+    })
+    set(group.querySelector("[data-role=resize]"), {
+      x: box.x + box.w - RESIZE_SIZE,
+      y: box.y + box.h - RESIZE_SIZE,
+    })
+    set(group.querySelector("line"), connector(shape))
   }
 
   function onFocusOut(event) {

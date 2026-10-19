@@ -1,4 +1,5 @@
 import {
+  CALLOUT_DEFAULTS,
   STYLES,
   connector,
   rectFromPoints,
@@ -9,11 +10,11 @@ import {
 export const SVG_NS = "http://www.w3.org/2000/svg"
 export const XHTML_NS = "http://www.w3.org/1999/xhtml"
 export const CALLOUT_COLOR = "#1e88e5"
-export const FONT_SIZE = 16
-export const LINE_HEIGHT = 20
+export const FONT_SIZE = 20
+export const LINE_HEIGHT = 26
 export const TEXT_PADDING = 8
 const HIT_WIDTH = 16
-const RESIZE_SIZE = 12
+export const RESIZE_SIZE = 12
 const ANCHOR_RADIUS = 6
 
 export function h(tag, attrs = {}, children = []) {
@@ -136,7 +137,10 @@ function selectionRect(bounds) {
   })
 }
 
-function renderCallout(shape, mode, selected) {
+function renderCallout(input, mode, selected) {
+  // The editor keeps a live callout fitted to its text; stored callouts are
+  // refitted here so older items with overflowing text still render whole.
+  const shape = mode === "live" ? input : fitCallout(input)
   const { box, anchor } = shape
   const line = connector(shape)
   const children = [
@@ -205,7 +209,7 @@ function renderCallout(shape, mode, selected) {
       }),
     )
   } else {
-    const lines = wrapText(shape.text, box.w - 2 * TEXT_PADDING)
+    const lines = wrapCalloutText(shape)
     children.push(
       h(
         "text",
@@ -230,19 +234,20 @@ function renderCallout(shape, mode, selected) {
   return h("g", { "data-id": shape.id, "data-type": "callout" }, children)
 }
 
-export function wrapText(text, maxWidth, fontSize = FONT_SIZE) {
+// Greedy word wrap. With a measure function (text => pixel width) the lines
+// break where the browser would; without one, by an estimated character
+// width, which is what the Node unit tests exercise.
+export function wrapText(text, maxWidth, fontSize = FONT_SIZE, measure = null) {
   const maxChars = Math.max(1, Math.floor(maxWidth / (fontSize * 0.55)))
+  const fits = candidate =>
+    measure ? measure(candidate) <= maxWidth : candidate.length <= maxChars
   const lines = []
   for (const paragraph of String(text).split("\n")) {
     let line = ""
     for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-      const chunks =
-        word.length > maxChars
-          ? word.match(new RegExp(`.{1,${maxChars}}`, "g"))
-          : [word]
-      for (const chunk of chunks) {
+      for (const chunk of splitLongWord(word, fits)) {
         if (line === "") line = chunk
-        else if (line.length + 1 + chunk.length <= maxChars) line += " " + chunk
+        else if (fits(line + " " + chunk)) line += " " + chunk
         else {
           lines.push(line)
           line = chunk
@@ -252,6 +257,58 @@ export function wrapText(text, maxWidth, fontSize = FONT_SIZE) {
     lines.push(line)
   }
   return lines
+}
+
+function splitLongWord(word, fits) {
+  const chunks = []
+  let chunk = ""
+  for (const char of word) {
+    if (chunk !== "" && !fits(chunk + char)) {
+      chunks.push(chunk)
+      chunk = ""
+    }
+    chunk += char
+  }
+  chunks.push(chunk)
+  return chunks
+}
+
+let canvasMeasure
+// Measures text the way the page lays it out, so the static renderer and the
+// editor break lines in the same places. Null where there is no canvas.
+export function defaultMeasure() {
+  if (canvasMeasure !== undefined) return canvasMeasure
+  canvasMeasure = null
+  if (typeof document !== "undefined") {
+    const context = document.createElement("canvas").getContext("2d")
+    if (context) {
+      context.font = `${FONT_SIZE}px sans-serif`
+      canvasMeasure = text => context.measureText(text).width
+    }
+  }
+  return canvasMeasure
+}
+
+function wrapCalloutText(shape, measure = defaultMeasure()) {
+  return wrapText(
+    shape.text,
+    shape.box.w - 2 * TEXT_PADDING,
+    FONT_SIZE,
+    measure,
+  )
+}
+
+export function calloutHeight(lineCount) {
+  return Math.max(
+    CALLOUT_DEFAULTS.minHeight,
+    lineCount * LINE_HEIGHT + 2 * TEXT_PADDING,
+  )
+}
+
+// Returns the callout with its box height fitted to its wrapped text.
+export function fitCallout(shape, measure = defaultMeasure()) {
+  const h = calloutHeight(wrapCalloutText(shape, measure).length)
+  return h === shape.box.h ? shape : { ...shape, box: { ...shape.box, h } }
 }
 
 export function toSvgString(node) {

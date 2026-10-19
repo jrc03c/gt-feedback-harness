@@ -54,7 +54,7 @@ body {
 }
 
 .harness-callout-text {
-  font: 16px/20px sans-serif;
+  font: 20px/26px sans-serif;
   color: #000;
   width: 100%;
   height: 100%;
@@ -65,7 +65,7 @@ body {
   word-break: break-word;
   user-select: text;
   cursor: text;
-  line-height: 20px;
+  line-height: 26px;
 }
 
 /* Floating controls */

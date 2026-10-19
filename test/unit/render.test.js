@@ -4,6 +4,8 @@ import {
   renderTree,
   toSvgString,
   wrapText,
+  fitCallout,
+  calloutHeight,
   h,
 } from "../../src/annotations/render.js"
 
@@ -85,17 +87,18 @@ test("static callout renders connector, anchor, box and wrapped text", () => {
   assert.ok(svg.includes('<line x1="10" y1="50" x2="0" y2="50"'))
   assert.ok(svg.includes('marker-end="url(#harness-arrow)"'))
   assert.ok(svg.includes('<circle cx="0" cy="50" r="6"'))
-  assert.ok(svg.includes('<rect x="10" y="40" width="100" height="40"'))
+  // The stored 40px box is refitted to its three wrapped lines.
+  assert.ok(svg.includes('<rect x="10" y="40" width="100" height="94"'), svg)
   assert.ok(svg.includes("<text "))
   assert.ok(svg.includes("<tspan"))
   assert.ok(!svg.includes("foreignObject"))
 })
 
-test("static callout text is 16px with 20px lines", () => {
+test("static callout text is 20px with 26px lines", () => {
   const svg = toSvgString(renderTree([callout], image))
-  // Box text starts at y = 40 + 8 padding + 16 font size.
-  assert.ok(svg.includes('<text x="18" y="64" font-size="16"'), svg)
-  assert.ok(svg.includes('<tspan x="18" dy="20">world foo</tspan>'), svg)
+  // Box text starts at y = 40 + 8 padding + 20 font size.
+  assert.ok(svg.includes('<text x="18" y="68" font-size="20"'), svg)
+  assert.ok(svg.includes('<tspan x="18" dy="26">world</tspan>'), svg)
 })
 
 test("live callout renders an editable div and a resize handle", () => {
@@ -165,9 +168,34 @@ test("wrapText wraps greedily by estimated character width", () => {
   assert.deepEqual(wrapText("hello world foo", 60), ["hello", "world", "foo"])
   assert.deepEqual(wrapText("", 60), [""])
   assert.deepEqual(wrapText("a\nb", 60), ["a", "b"])
-  // 16px * 0.55 = 8.8px per character, so 60px holds 6 characters.
-  assert.deepEqual(wrapText("abcdefghijkl", 60), ["abcdef", "ghijkl"])
+  // 20px * 0.55 = 11px per character, so 60px holds 5 characters.
+  assert.deepEqual(wrapText("abcdefghijkl", 60), ["abcde", "fghij", "kl"])
   assert.deepEqual(wrapText("abcdefghijkl", 60, 14), ["abcdefg", "hijkl"])
+})
+
+test("wrapText uses the measure function when one is given", () => {
+  const measure = text => text.length * 10
+  assert.deepEqual(wrapText("hello world foo", 55, 20, measure), [
+    "hello",
+    "world",
+    "foo",
+  ])
+  assert.deepEqual(wrapText("ab cd", 50, 20, measure), ["ab cd"])
+  assert.deepEqual(wrapText("abcdefg", 30, 20, measure), ["abc", "def", "g"])
+})
+
+test("calloutHeight fits the lines but never shrinks below the default box", () => {
+  assert.equal(calloutHeight(1), 68)
+  assert.equal(calloutHeight(2), 68)
+  assert.equal(calloutHeight(3), 94)
+})
+
+test("fitCallout sets the box height to the wrapped text", () => {
+  const tall = fitCallout({ ...callout, text: "a\nb\nc\nd" })
+  assert.equal(tall.box.h, 120)
+  assert.equal(fitCallout(callout).box.h, 94, "three wrapped lines")
+  assert.equal(fitCallout({ ...callout, text: "hi" }).box.h, 68, "one line")
+  assert.deepEqual(callout.box.h, 40, "the input is not mutated")
 })
 
 test("h builds a tree node", () => {
