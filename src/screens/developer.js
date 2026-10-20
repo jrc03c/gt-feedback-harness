@@ -1,6 +1,7 @@
 import { OAUTH_PROVIDER } from "../config.js"
 import { harnessPageUrl, renderErrorBanner } from "./banners.js"
 import { programLabel } from "../format.js"
+import { renderProgramHeading } from "./heading.js"
 
 export function shareLinks(pageUrl, shareId) {
   const base = `${pageUrl}?r=${encodeURIComponent(shareId)}&mode=`
@@ -85,6 +86,7 @@ export async function mountDeveloper({
   provider = OAUTH_PROVIDER,
   pageUrl = harnessPageUrl(),
   confirm = message => window.confirm(message),
+  prompt = (message, value) => window.prompt(message, value),
 }) {
   await withDeveloper({
     root,
@@ -141,7 +143,14 @@ export async function mountDeveloper({
           return
         }
         try {
-          await mountDeveloper({ root, store, provider, pageUrl, confirm })
+          await mountDeveloper({
+            root,
+            store,
+            provider,
+            pageUrl,
+            confirm,
+            prompt,
+          })
         } catch (failure) {
           renderErrorBanner(root, failure.message)
         }
@@ -167,12 +176,12 @@ export async function mountDeveloper({
           <label class="harness-link"><span>Test link</span><input type="text" readonly /><button type="button" data-copy="test">Copy</button></label>
           <p class="harness-card-actions">
             <a></a>
+            <button type="button" data-action="rename">Rename</button>
             <button type="button" data-action="regenerate">Regenerate links</button>
             <button type="button" data-action="delete">Delete program</button>
           </p>
           <p class="harness-error" hidden></p>`
-        card.querySelector("h3").textContent =
-          `${programLabel(program)} (${program.gt_key})`
+        renderProgramHeading(card.querySelector("h3"), program)
         card.querySelector(".harness-counts").textContent =
           `${program.session_count} session${program.session_count === 1 ? "" : "s"}, ${program.unresolved_count} unresolved item${program.unresolved_count === 1 ? "" : "s"}`
         const inputs = card.querySelectorAll(".harness-link input")
@@ -209,11 +218,30 @@ export async function mountDeveloper({
             return
           }
           try {
-            await mountDeveloper({ root, store, provider, pageUrl, confirm })
+            await mountDeveloper({
+              root,
+              store,
+              provider,
+              pageUrl,
+              confirm,
+              prompt,
+            })
           } catch (failure) {
             renderErrorBanner(root, failure.message)
           }
         }
+        card
+          .querySelector('[data-action="rename"]')
+          .addEventListener("click", () => {
+            const next = prompt(
+              "Name for this program (leave empty to show only its key):",
+              program.label || "",
+            )
+            if (next === null) return
+            perform("rename the program", () =>
+              store.renameProgram(program.id, next),
+            )
+          })
         card
           .querySelector('[data-action="regenerate"]')
           .addEventListener("click", () => {

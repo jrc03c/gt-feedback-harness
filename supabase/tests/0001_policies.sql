@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(32);
+select plan(34);
 
 -- Four users: two developers (real accounts) and two anonymous reviewers.
 insert into auth.users (id, instance_id, aud, role, email, is_anonymous) values
@@ -44,7 +44,18 @@ select throws_ok($$ insert into programs (owner_id, gt_key, share_id)
   values ('00000000-0000-0000-0000-000000000003', 'zzz9999', 'BBBBBBBBBBBBBBBBBBBBBBBB') $$,
   '42501', null, 'an anonymous user cannot register a program');
 
--- 4-5: a reviewer sees no programs, directly or through the overview
+-- 4-5: only the owner can rename a program
+select pg_temp.login('00000000-0000-0000-0000-000000000002', false);
+update programs set label = 'stolen' where id = '10000000-0000-0000-0000-000000000001';
+select pg_temp.login('00000000-0000-0000-0000-000000000001', false);
+select is((select label from programs where id = '10000000-0000-0000-0000-000000000001'), null,
+  'another developer''s rename changes nothing');
+update programs set label = 'Kitchen sink' where id = '10000000-0000-0000-0000-000000000001';
+select is((select label from programs where id = '10000000-0000-0000-0000-000000000001'), 'Kitchen sink',
+  'the owner can rename a program');
+
+-- 6-7: a reviewer sees no programs, directly or through the overview
+select pg_temp.login('00000000-0000-0000-0000-000000000003', true);
 select is((select count(*) from programs)::int, 0, 'a reviewer cannot list programs');
 select is((select count(*) from program_overview)::int, 0, 'a reviewer cannot list the program overview');
 

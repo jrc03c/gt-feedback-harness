@@ -8,7 +8,7 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 
 1. Open the harness URL and sign in with GitHub.
 
-2. Register the program's key. The harness gives the program a run link and a test link.
+2. Register the program's key, with an optional name. The harness gives the program a run link and a test link. You can rename the program later from its card.
 
 3. On GuidedTrack, open the program's **Publish** page and add the harness URL to the list of pages allowed to run the program. The harness URL is the page's own address, for example `https://<user>.github.io/<repo>/`. Adding it once covers every link.
 

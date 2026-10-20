@@ -218,6 +218,20 @@ test("setResolved writes or clears resolved_at", async () => {
   assert.deepEqual(second[0], ["update", [{ resolved_at: null }]])
 })
 
+test("renameProgram updates only the label, trimmed, and clears it when empty", async () => {
+  const { client, store: s } = store({
+    "from:programs": { data: null, error: null },
+  })
+  assert.equal(await s.renameProgram("p1", "  Kitchen sink "), "Kitchen sink")
+  assert.equal(await s.renameProgram("p1", "   "), null)
+  const [first, second] = client.stepsOf("from", "programs")
+  assert.deepEqual(first, [
+    ["update", [{ label: "Kitchen sink" }]],
+    ["eq", ["id", "p1"]],
+  ])
+  assert.deepEqual(second[0], ["update", [{ label: null }]])
+})
+
 test("signInWithProvider passes the provider and redirect", async () => {
   const { client, store: s } = store({})
   await s.signInWithProvider("google", "https://example.test/?dev")

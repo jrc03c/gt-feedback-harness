@@ -13,7 +13,14 @@ test("the inbox lists sessions newest first with counts, filters, and deletes", 
     await open(page, baseUrl)
     await page.evaluate(() => window.mountInbox())
     await page.waitForSelector(".harness-inbox tbody tr")
-    assert.match(await page.locator(".harness-inbox h1").innerText(), /Demo/)
+    assert.equal(
+      await page.locator(".harness-inbox h1").innerText(),
+      "Demo abc1234",
+    )
+    assert.equal(
+      await page.locator(".harness-inbox h1 .harness-key").innerText(),
+      "abc1234",
+    )
     const rows = await page.locator(".harness-inbox tbody tr").allInnerTexts()
     assert.equal(rows.length, 2)
     assert.match(rows[0], /Anonymous.*run.*0 items/s)
@@ -187,7 +194,10 @@ test("the session view renders items with the annotated screenshot, text, contex
     await open(page, baseUrl)
     await page.evaluate(() => window.mountSession("s-1"))
     await page.waitForSelector(".harness-item img")
-    assert.match(await page.locator(".harness-session h1").innerText(), /Demo/)
+    assert.equal(
+      await page.locator(".harness-session h1").innerText(),
+      "Demo abc1234",
+    )
     assert.equal(await page.locator(".harness-item").count(), 3)
 
     const first = page.locator(".harness-item").first()

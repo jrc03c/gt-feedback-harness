@@ -187,3 +187,78 @@ test("an auth event for the same user does not re-render", async () => {
     )
   })
 })
+
+test("the card heading shows the label with the key beside it, or the key alone", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    const heading = page.locator(".harness-program-card h3").first()
+    assert.equal(await heading.innerText(), "Demo abc1234")
+    assert.equal(await heading.locator(".harness-key").innerText(), "abc1234")
+
+    await page.fill('.harness-register input[name="key"]', "zzz9999")
+    await page.click('.harness-register button[type="submit"]')
+    await page.waitForFunction(
+      () => document.querySelectorAll(".harness-program-card").length === 2,
+    )
+    const unlabeled = page.locator(".harness-program-card", {
+      hasText: "zzz9999",
+    })
+    assert.equal(await unlabeled.locator("h3").innerText(), "zzz9999")
+    assert.equal(await unlabeled.locator("h3 .harness-key").count(), 0)
+  })
+})
+
+test("renaming a program changes its heading, and an empty name falls back to the key", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    let answer = "Kitchen sink"
+    page.on("dialog", dialog => dialog.accept(answer))
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    const card = page.locator(".harness-program-card").first()
+
+    await card.locator('[data-action="rename"]').click()
+    await page.waitForFunction(() =>
+      document
+        .querySelector(".harness-program-card h3")
+        ?.innerText.startsWith("Kitchen sink"),
+    )
+    assert.ok(
+      await page.evaluate(() => window.store.calls.includes("renameProgram")),
+    )
+    assert.equal(await card.locator("h3 .harness-key").innerText(), "abc1234")
+
+    answer = ""
+    await card.locator('[data-action="rename"]').click()
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".harness-program-card h3")?.innerText ===
+        "abc1234",
+    )
+  })
+})
+
+test("cancelling the rename prompt changes nothing", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    page.on("dialog", dialog => dialog.dismiss())
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    await page
+      .locator('.harness-program-card [data-action="rename"]')
+      .first()
+      .click()
+    await page.waitForTimeout(200)
+    assert.equal(
+      await page.locator(".harness-program-card h3").first().innerText(),
+      "Demo abc1234",
+    )
+    assert.ok(
+      !(await page.evaluate(() =>
+        window.store.calls.includes("renameProgram"),
+      )),
+    )
+  })
+})

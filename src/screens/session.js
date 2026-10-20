@@ -1,5 +1,6 @@
 import { withDeveloper } from "./developer.js"
-import { formatDate, formatLines, programLabel } from "../format.js"
+import { formatDate, formatLines } from "../format.js"
+import { renderProgramHeading } from "./heading.js"
 import { renderTree, toDom } from "../annotations/render.js"
 import { flattenToPng } from "../annotations/flatten.js"
 import { download } from "../download.js"
@@ -35,8 +36,7 @@ export async function mountSession({ root, store, sessionId }) {
       const back = root.querySelector("a")
       back.href = `?dev&program=${encodeURIComponent(session.program_id)}`
       back.textContent = "Back to the inbox"
-      root.querySelector("h1").textContent =
-        `${programLabel(program)} (${program.gt_key})`
+      renderProgramHeading(root.querySelector("h1"), program)
       root.querySelector(".harness-session-meta").textContent =
         `${session.reviewer_name || "Anonymous"}, ${session.mode} mode, started ${formatDate(session.started_at)}`
       const list = root.querySelector(".harness-items")

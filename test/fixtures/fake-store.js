@@ -171,6 +171,12 @@ export function createFakeStore(seed = {}) {
       state.programs.push(program)
       return program
     },
+    async renameProgram(programId, label) {
+      record("renameProgram")
+      const program = state.programs.find(p => p.id === programId)
+      program.label = (label || "").trim() || null
+      return program.label
+    },
     async regenerateShare(programId) {
       record("regenerateShare")
       const program = state.programs.find(p => p.id === programId)

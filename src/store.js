@@ -180,6 +180,17 @@ export function createStore({
           .single(),
       )
     },
+    // Changes only the label; an empty name clears it so the key shows alone.
+    async renameProgram(programId, label) {
+      const next = (label || "").trim() || null
+      unwrap(
+        await client
+          .from("programs")
+          .update({ label: next })
+          .eq("id", programId),
+      )
+      return next
+    },
     async regenerateShare(programId) {
       const shareId = newShareId()
       unwrap(

@@ -326,6 +326,13 @@ body {
   }
 }
 
+/* The GuidedTrack key shown beside a program's label in headings. */
+.harness-key {
+  font-size: 0.65em;
+  font-weight: 400;
+  color: #666;
+}
+
 /* Home and banners */
 .harness-home {
   max-width: 640px;

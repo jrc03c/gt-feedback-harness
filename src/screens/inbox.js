@@ -1,5 +1,6 @@
 import { withDeveloper } from "./developer.js"
-import { formatDate, formatDuration, programLabel } from "../format.js"
+import { formatDate, formatDuration } from "../format.js"
+import { renderProgramHeading } from "./heading.js"
 import { sortSessions } from "./inbox-sort.js"
 
 const COLUMNS = [
@@ -36,8 +37,7 @@ export async function mountInbox({
           <p class="harness-error" hidden></p>
           <p class="harness-empty" hidden>No sessions yet. Share the program's links to get feedback.</p>
         </main>`
-      root.querySelector("h1").textContent =
-        `${programLabel(program)} (${program.gt_key})`
+      renderProgramHeading(root.querySelector("h1"), program)
       const tbody = root.querySelector("tbody")
       const errorBox = root.querySelector(".harness-error")
       const filter = root.querySelector("input[type=checkbox]")
