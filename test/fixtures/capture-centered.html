@@ -43,12 +43,19 @@
     </style>
   </head>
   <body>
-    <div id="app"><div class="harness-program"><div class="program_container">
-      <div id="program_navigation">
-        <div class="points"><div class="total">1000</div><div class="change"></div></div>
+    <div id="app">
+      <div class="harness-program">
+        <div class="program_container">
+          <div id="program_navigation">
+            <div class="points">
+              <div class="total">1000</div>
+              <div class="change"></div>
+            </div>
+          </div>
+          <div class="main">What's 3 + 3?</div>
+        </div>
       </div>
-      <div class="main">What's 3 + 3?</div>
-    </div></div></div>
+    </div>
     <script type="module">
       import "/test/fixtures/build/entry.js"
       window.showPointsChange = () => {
@@ -56,7 +63,8 @@
         change.textContent = "-500"
         change.style.opacity = "1"
         void document.body.offsetWidth
-        return getComputedStyle(document.querySelector(".program_container")).marginLeft
+        return getComputedStyle(document.querySelector(".program_container"))
+          .marginLeft
       }
       window.fixtureReady = true
     </script>
