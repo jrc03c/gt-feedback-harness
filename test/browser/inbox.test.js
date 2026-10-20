@@ -270,3 +270,39 @@ test("items without a screenshot hide the download button", async () => {
     assert.equal(await buttons.nth(2).isHidden(), true)
   })
 })
+
+test("the Context section is a card that keeps its shape when expanded", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountSession("s-1"))
+    await page.waitForSelector(".harness-item img")
+    const details = page.locator(".harness-item details").first()
+    const read = () =>
+      details.evaluate(el => {
+        const cs = getComputedStyle(el)
+        const summary = getComputedStyle(el.querySelector("summary"))
+        return {
+          open: el.open,
+          background: cs.backgroundColor,
+          radius: cs.borderTopLeftRadius,
+          border: cs.borderTopWidth,
+          summaryPadding: summary.paddingLeft,
+          cursor: summary.cursor,
+        }
+      })
+    const closed = await read()
+    assert.equal(closed.open, false)
+    assert.equal(closed.background, "rgb(246, 246, 246)")
+    assert.equal(closed.radius, "6px")
+    assert.equal(closed.border, "1px")
+    assert.equal(closed.summaryPadding, "12px")
+    assert.equal(closed.cursor, "pointer")
+
+    await details.locator("summary").click()
+    const opened = await read()
+    assert.equal(opened.open, true)
+    assert.equal(opened.background, closed.background)
+    assert.equal(opened.radius, closed.radius)
+    assert.equal(opened.border, closed.border)
+  })
+})

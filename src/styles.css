@@ -607,10 +607,42 @@ body {
   margin: 8px 0;
 }
 
+/* The Context section is a card shaped like the buttons below it, open or
+   closed: gray, bordered, rounded, with the summary as its header. */
+.harness-item details {
+  margin: 12px 0;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #f6f6f6;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.harness-item summary {
+  padding: 6px 12px;
+  font:
+    14px system-ui,
+    sans-serif;
+  cursor: pointer;
+  user-select: none;
+}
+
+.harness-item summary:hover {
+  background: #ececec;
+  border-radius: 6px;
+}
+
+.harness-item details[open] summary {
+  border-bottom: 1px solid #ddd;
+  border-radius: 6px 6px 0 0;
+}
+
 .harness-item dl {
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: 2px 12px;
+  margin: 0;
+  padding: 10px 12px;
   font-size: 13px;
 }
 
