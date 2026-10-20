@@ -306,3 +306,47 @@ test("the Context section is a card that keeps its shape when expanded", async (
     assert.equal(opened.border, closed.border)
   })
 })
+
+test("the screenshot and its caption form an inner card", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountSession("s-1"))
+    await page.waitForSelector(".harness-item img")
+    const result = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".harness-item")]
+      return cards.map(card => {
+        const figure = card.querySelector("figure.harness-item-figure")
+        const cs = figure ? getComputedStyle(figure) : null
+        return {
+          hasFigure: Boolean(figure),
+          imageInside: Boolean(
+            figure?.querySelector(".harness-item-image img"),
+          ),
+          captionInside: Boolean(
+            figure?.querySelector("figcaption .harness-item-text"),
+          ),
+          border: cs?.borderTopWidth,
+          radius: cs?.borderTopLeftRadius,
+          background: cs?.backgroundColor,
+          overflow: cs?.overflow,
+        }
+      })
+    })
+    assert.equal(result.length, 3)
+    for (const card of result.slice(0, 2)) {
+      assert.deepEqual(card, {
+        hasFigure: true,
+        imageInside: true,
+        captionInside: true,
+        border: "1px",
+        radius: "8px",
+        background: "rgb(250, 250, 250)",
+        overflow: "hidden",
+      })
+    }
+    // The item without a screenshot still shows its text in the card.
+    assert.equal(result[2].hasFigure, true)
+    assert.equal(result[2].imageInside, false)
+    assert.equal(result[2].captionInside, true)
+  })
+})

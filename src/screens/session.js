@@ -114,8 +114,10 @@ async function itemCard(item, program, store, lightbox) {
   card.classList.toggle("harness-resolved", Boolean(item.resolved_at))
   card.innerHTML = `
     <p class="harness-item-when"></p>
-    <div class="harness-item-image"></div>
-    <pre class="harness-item-text"></pre>
+    <figure class="harness-item-figure">
+      <div class="harness-item-image"></div>
+      <figcaption><pre class="harness-item-text"></pre></figcaption>
+    </figure>
     <details><summary>Context</summary><dl></dl></details>
     <p class="harness-item-actions">
       <button type="button" data-action="resolve"></button>

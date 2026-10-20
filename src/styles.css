@@ -534,12 +534,38 @@ body {
   opacity: 0.7;
 }
 
+/* The screenshot and the reviewer's text form an inner card that hugs the
+   screenshot's width. */
+.harness-item-figure {
+  display: inline-block;
+  vertical-align: top;
+  max-width: 100%;
+  margin: 12px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.harness-item-figure figcaption {
+  padding: 10px 12px;
+}
+
+.harness-item-image:not(:empty) + figcaption {
+  border-top: 1px solid #e5e5e5;
+}
+
 .harness-item-image {
   position: relative;
-  display: inline-block;
+  display: block;
   max-width: 100%;
   line-height: 0;
   cursor: zoom-in;
+}
+
+.harness-item-image:empty {
+  display: none;
 }
 
 .harness-item-image:focus-visible {
@@ -600,11 +626,11 @@ body {
 }
 
 .harness-item-text {
+  margin: 0;
   white-space: pre-wrap;
   font:
     14px system-ui,
     sans-serif;
-  margin: 8px 0;
 }
 
 /* The Context section is a card shaped like the buttons below it, open or
