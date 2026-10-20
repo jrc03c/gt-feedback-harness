@@ -3,20 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="/test/fixtures/build/entry.css" />
-    <link rel="stylesheet" href="/test/fixtures/gt-fonts-fixture.css" />
     <style>
-      /* An icon drawn the way GuidedTrack draws its glyphicons: a pseudo-element
-         with a private-use code point in an icon font. HarnessBox renders every
-         character as a solid square, so a fallback font leaves the middle white. */
+      /* An icon drawn the way GuidedTrack draws its points star: a pseudo-element
+         with a private-use code point, in an icon font set on the pseudo-element
+         only, declared in a stylesheet the page cannot read (here: not declared
+         at all). HarnessBox renders every character as a solid square, so a
+         fallback font leaves the middle white. */
       body {
         margin: 0;
       }
-      /* Like Bootstrap's .glyphicon, the font is set on the element itself. */
-      .icon {
-        font-family: "HarnessBox";
-      }
       .icon::before {
         content: "\e079";
+        font-family: "HarnessBox";
         font-size: 100px;
         line-height: 1;
         position: absolute;

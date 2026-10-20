@@ -34,12 +34,37 @@ function replaceMedia(clone) {
   }
 }
 
+// GuidedTrack serves its stylesheets without cross-origin headers, so the
+// capture library cannot read their @font-face rules and would leave the icon
+// fonts out. scripts/gt-fonts.mjs writes a copy of those rules, with the font
+// files inlined, next to the deployed site; it is fetched once and handed to
+// the library, which pastes it into the screenshot. Without the file the
+// capture still works, only without GuidedTrack's icons.
+export const FONTS_URL = "gt-fonts.css"
+const fontCssCache = new Map()
+
+export function loadFontCss(url) {
+  if (!url) return Promise.resolve(null)
+  if (!fontCssCache.has(url)) {
+    fontCssCache.set(
+      url,
+      fetch(url)
+        .then(response => (response.ok ? response.text() : ""))
+        .then(text => (text.includes("@font-face") ? text : null))
+        .catch(() => null),
+    )
+  }
+  return fontCssCache.get(url)
+}
+
 export async function captureViewport({
   scale = Math.min(window.devicePixelRatio || 1, 2),
   exclude = CHROME_SELECTOR,
   quality = 0.85,
+  fontsUrl = FONTS_URL,
 } = {}) {
   const root = document.documentElement
+  const fontCss = await loadFontCss(fontsUrl)
   forceRelayout(root)
   const full = await domToCanvas(root, {
     scale,
@@ -48,6 +73,7 @@ export async function captureViewport({
     height: root.scrollHeight,
     filter: node => !(node instanceof Element && node.matches(exclude)),
     onCloneNode: replaceMedia,
+    font: fontCss ? { cssText: fontCss } : undefined,
   })
 
   const width = Math.round(window.innerWidth * scale)

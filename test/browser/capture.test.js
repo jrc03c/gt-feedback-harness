@@ -113,16 +113,21 @@ test("a centred container stays centred even when the browser misreports its aut
   })
 })
 
-test("icon fonts declared in a readable stylesheet are drawn in the capture", async () => {
+test("icon fonts are drawn from the font file the capture is given, even on pseudo-elements", async () => {
   await withPage(async ({ page, baseUrl }) => {
     await page.goto(`${baseUrl}/test/fixtures/capture-font.html`)
     await page.waitForFunction(() => window.fixtureReady === true)
     const result = await page.evaluate(async () => {
       const { captureViewport, pixelAt } = window.harness
-      const r = await captureViewport({ scale: 1 })
+      const withFonts = await captureViewport({
+        scale: 1,
+        fontsUrl: "/test/fixtures/gt-fonts-fixture.css",
+      })
+      const without = await captureViewport({ scale: 1, fontsUrl: null })
       return {
-        glyph: await pixelAt(r.blob, 150, 150),
-        beside: await pixelAt(r.blob, 50, 150),
+        glyph: await pixelAt(withFonts.blob, 150, 150),
+        beside: await pixelAt(withFonts.blob, 50, 150),
+        withoutGlyph: await pixelAt(without.blob, 150, 150),
       }
     })
     assert.ok(
@@ -133,5 +138,24 @@ test("icon fonts declared in a readable stylesheet are drawn in the capture", as
       result.beside.r > 240,
       `expected white beside it, got ${JSON.stringify(result.beside)}`,
     )
+    assert.ok(
+      result.withoutGlyph.r > 240,
+      `expected nothing without the fonts, got ${JSON.stringify(result.withoutGlyph)}`,
+    )
+  })
+})
+
+test("a missing font file does not break the capture", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/capture-font.html`)
+    await page.waitForFunction(() => window.fixtureReady === true)
+    const width = await page.evaluate(async () => {
+      const r = await window.harness.captureViewport({
+        scale: 1,
+        fontsUrl: "/test/fixtures/does-not-exist.css",
+      })
+      return r.width
+    })
+    assert.equal(width, 800)
   })
 })

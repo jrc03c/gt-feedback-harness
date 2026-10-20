@@ -43,38 +43,14 @@ export function createEmitter() {
   }
 }
 
-// Adds a <style> holding copies of GuidedTrack's @font-face rules (written by
-// scripts/gt-fonts.mjs) at the top of <head>, so GuidedTrack's own, later
-// stylesheets still win for the live page while the screenshot library, which
-// cannot read those cross-origin sheets, finds the icon fonts here. A missing
-// or empty file is ignored: screenshots then simply lack the icons.
-export async function installFontCopies(url, doc = document) {
-  if (!url || doc.head.querySelector("style[data-harness-fonts]")) return false
-  let css = ""
-  try {
-    const response = await fetch(url)
-    if (response.ok) css = await response.text()
-  } catch {
-    return false
-  }
-  if (!css.includes("@font-face")) return false
-  const style = doc.createElement("style")
-  style.setAttribute("data-harness-fonts", "")
-  style.textContent = css
-  doc.head.prepend(style)
-  return true
-}
-
 export async function mountProgram({
   root,
   key,
   mode = "run",
   assetBase = GT_ASSET_BASE,
-  fontsUrl = "gt-fonts.css",
   onRefused = () => {},
 }) {
   const events = createEmitter()
-  const fontsInstalled = installFontCopies(fontsUrl)
   root.innerHTML = containerMarkup(key, mode)
   const container = root.querySelector(".program_container")
 
@@ -99,7 +75,6 @@ export async function mountProgram({
   return {
     container,
     events,
-    fontsInstalled,
     unmount() {
       observer.disconnect()
     },
