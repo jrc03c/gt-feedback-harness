@@ -495,6 +495,15 @@ body {
   white-space: nowrap;
 }
 
+/* The View link and Delete button stay on one row with a clear gap. */
+.harness-actions {
+  white-space: nowrap;
+}
+
+.harness-actions a {
+  margin-right: 16px;
+}
+
 .harness-badge {
   display: inline-block;
   margin-left: 4px;

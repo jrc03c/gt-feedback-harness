@@ -95,7 +95,7 @@ export async function mountInbox({
             "harness-unresolved",
             session.unresolved_count > 0,
           )
-          row.innerHTML = `<td></td><td></td><td></td><td></td><td></td><td><a></a> <button type="button" data-action="delete">Delete</button></td>`
+          row.innerHTML = `<td></td><td></td><td></td><td></td><td></td><td class="harness-actions"><a></a><button type="button" data-action="delete">Delete</button></td>`
           const cells = row.querySelectorAll("td")
           cells[0].textContent = session.reviewer_name || "Anonymous"
           cells[1].textContent = session.mode
@@ -114,7 +114,7 @@ export async function mountInbox({
           }
           const open = row.querySelector("a")
           open.href = `?session=${encodeURIComponent(session.id)}`
-          open.textContent = "Open"
+          open.textContent = "View"
           const deleteButton = row.querySelector('[data-action="delete"]')
           deleteButton.addEventListener("click", async () => {
             if (

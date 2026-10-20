@@ -18,9 +18,21 @@ test("the inbox lists sessions newest first with counts, filters, and deletes", 
     assert.equal(rows.length, 2)
     assert.match(rows[0], /Anonymous.*run.*0 items/s)
     assert.match(rows[1], /Alice.*test.*5 min.*3 items.*2 unresolved/s)
-    assert.equal(
-      await page.locator('.harness-inbox a[href="?session=s-1"]').count(),
-      1,
+    const view = page.locator('.harness-inbox a[href="?session=s-1"]')
+    assert.equal(await view.innerText(), "View")
+    // The link and the Delete button share a row with a clear gap, even next
+    // to the "unresolved" badge.
+    const [link, button] = await Promise.all([
+      view.boundingBox(),
+      view.locator("xpath=following-sibling::button").boundingBox(),
+    ])
+    assert.ok(
+      Math.abs(link.y + link.height / 2 - (button.y + button.height / 2)) < 4,
+      `expected the same row, got ${JSON.stringify([link, button])}`,
+    )
+    assert.ok(
+      button.x - (link.x + link.width) >= 12,
+      `expected a gap of 12px or more, got ${button.x - (link.x + link.width)}`,
     )
 
     await page.check(".harness-inbox input[type=checkbox]")
