@@ -26,6 +26,23 @@ test("the inbox lists sessions newest first with counts, filters, and deletes", 
       view.boundingBox(),
       view.locator("xpath=following-sibling::button").boundingBox(),
     ])
+    // The cell stays a real table cell, so its border lines up with the row's.
+    const cell = await view.evaluate(a => {
+      const td = a.closest("td")
+      const row = td.parentElement
+      return {
+        display: getComputedStyle(td).display,
+        bottomGap:
+          row.getBoundingClientRect().bottom -
+          td.getBoundingClientRect().bottom,
+      }
+    })
+    assert.equal(cell.display, "table-cell")
+    assert.equal(cell.bottomGap, 0)
+    assert.ok(
+      link.height < 24,
+      `the link is one line of text, got ${link.height}px`,
+    )
     assert.ok(
       Math.abs(link.y + link.height / 2 - (button.y + button.height / 2)) < 4,
       `expected the same row, got ${JSON.stringify([link, button])}`,

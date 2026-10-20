@@ -495,12 +495,19 @@ body {
   white-space: nowrap;
 }
 
-/* The View link and Delete button stay on one row with a clear gap. */
-.harness-actions {
+/* The View link and Delete button stay on one row, centred on each other,
+   with a clear gap. (Not .harness-actions: that is the feedback modal's flex
+   toolbar, and a flex table cell breaks out of its row.) */
+.harness-row-actions {
   white-space: nowrap;
 }
 
-.harness-actions a {
+.harness-row-actions a,
+.harness-row-actions button {
+  vertical-align: middle;
+}
+
+.harness-row-actions a {
   margin-right: 16px;
 }
 
