@@ -25,7 +25,7 @@ Open the link, run the program, click **Give feedback** at any point, draw with 
 ## Known limits
 
 - Programs that use `*question: captcha` do not work in the harness, because the harness has no reCAPTCHA site key to give GuidedTrack.
-- Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen.
+- Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen. GuidedTrack's icons (the back arrow, the menu, the points star) are missing from screenshots because GuidedTrack serves its stylesheets without cross-origin headers, so the icon font cannot be read. Audio players, embedded videos, and other embedded frames appear as gray boxes of the same size.
 - The reviewer's name is stored in the browser, not in the link, so it does not carry over to another browser or device.
 - "Reset everything" returns to the harness only when the harness was opened at the exact address saved on the Publish page (`/<repo>/`, not `/<repo>/index.html`).
 - Free-tier Supabase pauses a project after a week without traffic. The weekly CI ping prevents it.

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/test/fixtures/build/entry.css" />
+    <style>
+      /* A centred program container, as GuidedTrack lays one out, with the
+         absolutely positioned points display that triggers a Chromium quirk:
+         after the points change is shown, getComputedStyle reports the
+         container's auto margin as 0px although it stays centred. */
+      body {
+        margin: 0;
+      }
+      .program_container {
+        width: 100%;
+        max-width: 768px;
+        margin: auto;
+        padding-top: 6px;
+        box-sizing: border-box;
+        background: #0000ff;
+        height: 300px;
+      }
+      #program_navigation {
+        position: relative;
+        height: 48px;
+        width: 100%;
+        margin: auto;
+      }
+      .points {
+        display: block;
+        min-width: 48px;
+        height: 48px;
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin-left: -48px;
+        padding: 0 8px;
+        overflow: hidden;
+      }
+      .change {
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"><div class="harness-program"><div class="program_container">
+      <div id="program_navigation">
+        <div class="points"><div class="total">1000</div><div class="change"></div></div>
+      </div>
+      <div class="main">What's 3 + 3?</div>
+    </div></div></div>
+    <script type="module">
+      import "/test/fixtures/build/entry.js"
+      window.showPointsChange = () => {
+        const change = document.querySelector(".change")
+        change.textContent = "-500"
+        change.style.opacity = "1"
+        void document.body.offsetWidth
+        return getComputedStyle(document.querySelector(".program_container")).marginLeft
+      }
+      window.fixtureReady = true
+    </script>
+  </body>
+</html>
