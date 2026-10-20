@@ -12,7 +12,6 @@ permissions:
 
 jobs:
   test:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +25,6 @@ jobs:
       - run: npm test
 
   db-tests:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,8 +34,9 @@ jobs:
       - run: supabase db start
       - run: supabase test db
 
+  # Also runs on the weekly schedule, which refreshes the copy of GuidedTrack's
+  # font declarations (see scripts/gt-fonts.mjs).
   deploy:
-    if: github.event_name != 'schedule'
     needs: [test, db-tests]
     runs-on: ubuntu-latest
     permissions:
@@ -72,6 +71,7 @@ jobs:
           mkdir -p site
           cp index.html site/
           cp -r dist site/dist
+      - run: node scripts/gt-fonts.mjs site/gt-fonts.css
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

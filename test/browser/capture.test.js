@@ -112,3 +112,26 @@ test("a centred container stays centred even when the browser misreports its aut
     )
   })
 })
+
+test("icon fonts declared in a readable stylesheet are drawn in the capture", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/capture-font.html`)
+    await page.waitForFunction(() => window.fixtureReady === true)
+    const result = await page.evaluate(async () => {
+      const { captureViewport, pixelAt } = window.harness
+      const r = await captureViewport({ scale: 1 })
+      return {
+        glyph: await pixelAt(r.blob, 150, 150),
+        beside: await pixelAt(r.blob, 50, 150),
+      }
+    })
+    assert.ok(
+      result.glyph.r < 40 && result.glyph.g < 40 && result.glyph.b < 40,
+      `expected a black square, got ${JSON.stringify(result.glyph)}`,
+    )
+    assert.ok(
+      result.beside.r > 240,
+      `expected white beside it, got ${JSON.stringify(result.beside)}`,
+    )
+  })
+})

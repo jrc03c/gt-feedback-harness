@@ -25,7 +25,8 @@ Open the link, run the program, click **Give feedback** at any point, draw with 
 ## Known limits
 
 - Programs that use `*question: captcha` do not work in the harness, because the harness has no reCAPTCHA site key to give GuidedTrack.
-- Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen. GuidedTrack's icons (the back arrow, the menu, the points star) are missing from screenshots because GuidedTrack serves its stylesheets without cross-origin headers, so the icon font cannot be read. Audio players, embedded videos, and other embedded frames appear as gray boxes of the same size.
+- Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen. Audio players, embedded videos, and other embedded frames appear as gray boxes of the same size.
+- GuidedTrack serves its stylesheets without cross-origin headers, so the screenshot library cannot read their icon font declarations. The deploy workflow therefore copies those declarations into `gt-fonts.css` next to the site, on every deploy and once a week. If GuidedTrack renames its font files between refreshes, the icons (the back arrow, the menu, the points star) go missing from screenshots until the next deploy. Locally, `npm run fonts` writes the file at the repository root (it is git-ignored).
 - The reviewer's name is stored in the browser, not in the link, so it does not carry over to another browser or device.
 - "Reset everything" returns to the harness only when the harness was opened at the exact address saved on the Publish page (`/<repo>/`, not `/<repo>/index.html`).
 - Free-tier Supabase pauses a project after a week without traffic. The weekly CI ping prevents it.
@@ -76,7 +77,7 @@ npx supabase db push --db-url "$(node -e 'import("./scripts/db-url.mjs").then(m 
 
 ## Deployment
 
-Every push to `main` runs the tests, builds, and publishes to GitHub Pages through `.github/workflows/deploy.yml`. In the repository settings, set Pages to deploy from **GitHub Actions** once.
+Every push to `main` runs the tests, builds, and publishes to GitHub Pages through `.github/workflows/deploy.yml`; the weekly scheduled run does the same, which also refreshes `gt-fonts.css`. In the repository settings, set Pages to deploy from **GitHub Actions** once.
 
 ## Design
 

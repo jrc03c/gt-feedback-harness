@@ -14,6 +14,7 @@ const TYPES = {
   ".map": "application/json",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".ttf": "font/ttf",
 }
 
 export function startServer() {

@@ -11,6 +11,7 @@
     "test:unit": "node --test \"test/unit/**/*.test.js\"",
     "test:browser": "npm run build && node --test --test-concurrency=1 \"test/browser/**/*.test.js\"",
     "test:db": "node scripts/run-pgtap.mjs supabase/tests",
+    "fonts": "node scripts/gt-fonts.mjs gt-fonts.css",
     "format": "prettier --write ."
   },
   "dependencies": {
