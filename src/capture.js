@@ -23,6 +23,16 @@ function forceRelayout(root) {
   void root.offsetWidth
 }
 
+// Drawn in place of an image whose server does not allow cross-origin reads
+// (the capture must fetch every image to inline it). The SVG has no size of
+// its own, so it fills whatever box the image had. See docs/backlog.md for
+// the proxy that would show such images instead.
+export const GRAY_BOX =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="#eee"/></svg>',
+  )
+
 function replaceMedia(clone) {
   if (!clone.querySelectorAll) return
   for (const element of clone.querySelectorAll(MEDIA_SELECTOR)) {
@@ -73,6 +83,7 @@ export async function captureViewport({
     height: root.scrollHeight,
     filter: node => !(node instanceof Element && node.matches(exclude)),
     onCloneNode: replaceMedia,
+    fetch: { placeholderImage: GRAY_BOX },
     font: fontCss ? { cssText: fontCss } : undefined,
   })
 

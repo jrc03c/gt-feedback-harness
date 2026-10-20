@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/test/fixtures/build/entry.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+      #remote {
+        position: absolute;
+        left: 100px;
+        top: 100px;
+        width: 200px;
+        height: 150px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The test points this at a second origin that sends no CORS headers:
+         the browser shows it, but the capture cannot read its pixels. -->
+    <img id="remote" alt="" />
+    <script type="module">
+      import "/test/fixtures/build/entry.js"
+      window.fixtureReady = true
+    </script>
+  </body>
+</html>

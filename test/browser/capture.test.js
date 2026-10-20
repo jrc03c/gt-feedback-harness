@@ -1,6 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { withPage } from "../helpers/browser.js"
+import { startServer } from "../helpers/server.js"
 
 const capture = page =>
   page.evaluate(async () => {
@@ -158,4 +159,45 @@ test("a missing font file does not break the capture", async () => {
     })
     assert.equal(width, 800)
   })
+})
+
+test("an image the capture cannot fetch is drawn as a gray box of the same size", async () => {
+  const other = await startServer()
+  try {
+    await withPage(async ({ page, baseUrl }) => {
+      await page.goto(`${baseUrl}/test/fixtures/capture-cors.html`)
+      await page.waitForFunction(() => window.fixtureReady === true)
+      const loaded = await page.evaluate(async src => {
+        const img = document.getElementById("remote")
+        img.src = src
+        await img.decode()
+        return img.naturalWidth
+      }, `${other.url}/test/fixtures/red.png`)
+      assert.equal(loaded, 200, "the browser itself shows the image")
+      const result = await page.evaluate(async () => {
+        const { captureViewport, pixelAt } = window.harness
+        const r = await captureViewport({ scale: 1 })
+        return {
+          inside: await pixelAt(r.blob, 200, 175),
+          corner: await pixelAt(r.blob, 102, 102),
+          outside: await pixelAt(r.blob, 50, 50),
+        }
+      })
+      for (const pixel of [result.inside, result.corner]) {
+        assert.ok(
+          pixel.r === pixel.g &&
+            pixel.g === pixel.b &&
+            pixel.r > 200 &&
+            pixel.r < 250,
+          `expected a gray box, got ${JSON.stringify(pixel)}`,
+        )
+      }
+      assert.ok(
+        result.outside.r > 250 && result.outside.g > 250,
+        `expected white outside, got ${JSON.stringify(result.outside)}`,
+      )
+    })
+  } finally {
+    await other.close()
+  }
 })

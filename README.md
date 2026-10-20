@@ -25,7 +25,7 @@ Open the link, run the program, click **Give feedback** at any point, draw with 
 ## Known limits
 
 - Programs that use `*question: captcha` do not work in the harness, because the harness has no reCAPTCHA site key to give GuidedTrack.
-- Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen. Audio players, embedded videos, and other embedded frames appear as gray boxes of the same size.
+- Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen. Audio players, embedded videos, other embedded frames, and images whose server does not allow cross-origin reads appear as gray boxes of the same size (see `docs/backlog.md` for the planned fix).
 - GuidedTrack serves its stylesheets without cross-origin headers, so the screenshot library cannot read their icon font declarations. The deploy workflow therefore copies those declarations, with the font files inlined, into `gt-fonts.css` next to the site, on every deploy and once a week; the capture hands that file to the screenshot library. Icons GuidedTrack adds between refreshes are missing from screenshots until the next deploy, and without the file (for example when serving the repository locally) screenshots lack the icons (the back arrow, the menu, the points star) altogether. `npm run fonts` writes the file at the repository root (it is git-ignored).
 - The reviewer's name is stored in the browser, not in the link, so it does not carry over to another browser or device.
 - "Reset everything" returns to the harness only when the harness was opened at the exact address saved on the Publish page (`/<repo>/`, not `/<repo>/index.html`).
@@ -81,4 +81,4 @@ Every push to `main` runs the tests, builds, and publishes to GitHub Pages throu
 
 ## Design
 
-The design spec is `docs/superpowers/specs/2026-10-14-gt-feedback-harness-design.md`. Implementation plans live under `docs/superpowers/plans/`, and spike findings under `docs/superpowers/spikes/`.
+Deferred ideas are in `docs/backlog.md`. The design spec is `docs/superpowers/specs/2026-10-14-gt-feedback-harness-design.md`. Implementation plans live under `docs/superpowers/plans/`, and spike findings under `docs/superpowers/spikes/`.
