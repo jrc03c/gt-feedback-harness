@@ -202,7 +202,9 @@ async function itemCard(item, program, store, lightbox) {
 
   const resolveButton = card.querySelector('[data-action="resolve"]')
   const labelResolve = () =>
-    (resolveButton.textContent = item.resolved_at ? "Unresolve" : "Resolve")
+    (resolveButton.textContent = item.resolved_at
+      ? "Mark unresolved"
+      : "Mark resolved")
   labelResolve()
   resolveButton.addEventListener("click", async () => {
     const next = !item.resolved_at

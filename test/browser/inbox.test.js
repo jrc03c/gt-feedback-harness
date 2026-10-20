@@ -209,12 +209,15 @@ test("the session view renders items with the annotated screenshot, text, contex
       1,
     )
 
-    await first.locator('[data-action="resolve"]').click()
+    const resolve = first.locator('[data-action="resolve"]')
+    assert.equal(await resolve.innerText(), "Mark resolved")
+    await resolve.click()
     await page.waitForFunction(
       () =>
         document.querySelectorAll(".harness-item.harness-resolved").length ===
         2,
     )
+    assert.equal(await resolve.innerText(), "Mark unresolved")
     assert.ok(
       await page.evaluate(() =>
         window.store.calls.includes("setResolved:true"),
