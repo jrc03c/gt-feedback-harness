@@ -432,6 +432,37 @@ body {
   border-radius: 4px;
 }
 
+/* A collapsible note shaped like the Context card in the session view. */
+.harness-help {
+  margin: 0 0 24px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #f6f6f6;
+  font-size: 14px;
+}
+
+.harness-help summary {
+  padding: 6px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.harness-help[open] summary {
+  border-bottom: 1px solid #ddd;
+}
+
+.harness-help p,
+.harness-help pre {
+  margin: 10px 12px;
+}
+
+.harness-help pre {
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: #fff;
+  overflow-x: auto;
+}
+
 .harness-program-card {
   border: 1px solid #ddd;
   border-radius: 8px;

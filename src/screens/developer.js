@@ -129,6 +129,13 @@ export async function mountDeveloper({
             <button type="submit">Register program</button>
             <p class="harness-error" hidden></p>
           </form>
+          <details class="harness-help">
+            <summary>How can I find my program's key?</summary>
+            <p>The key is the short identifier GuidedTrack gives every program. It appears in the program's URLs, for example the run and test links:</p>
+            <pre>https://www.guidedtrack.com/programs/&lt;KEY&gt;/run
+https://www.guidedtrack.com/programs/&lt;KEY&gt;/test</pre>
+            <p>Copy the part that stands in for <code>&lt;KEY&gt;</code>.</p>
+          </details>
           <section class="harness-programs"></section>
         </main>`
       root.querySelector(".harness-setup-url").textContent = pageUrl

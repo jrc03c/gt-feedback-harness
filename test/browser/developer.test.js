@@ -299,3 +299,24 @@ test("the header names the signed-in developer by GitHub username", async () => 
     )
   })
 })
+
+test("a collapsible note under the form explains where to find a program's key", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    const help = page.locator(".harness-register + details.harness-help")
+    assert.equal(await help.count(), 1)
+    assert.equal(
+      await help.locator("summary").innerText(),
+      "How can I find my program's key?",
+    )
+    assert.equal(await help.evaluate(el => el.open), false)
+    await help.locator("summary").click()
+    assert.equal(await help.evaluate(el => el.open), true)
+    assert.match(
+      await help.innerText(),
+      /https:\/\/www\.guidedtrack\.com\/programs\/<KEY>\/run/,
+    )
+  })
+})
