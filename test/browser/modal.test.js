@@ -444,3 +444,28 @@ test("Escape in the feedback box only leaves it (Select active)", async () => {
     assert.equal(await page.inputValue(".harness-text"), "draft")
   })
 })
+
+test("buttons leave a gap between their icon and their label", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    const gaps = await page.evaluate(() =>
+      [...document.querySelectorAll(".harness-modal button")]
+        .filter(button => button.querySelector(".harness-icon"))
+        .map(button => {
+          const icon = button
+            .querySelector(".harness-icon")
+            .getBoundingClientRect()
+          const label = button
+            .querySelector(".harness-label")
+            .getBoundingClientRect()
+          return {
+            name: button.textContent.trim(),
+            gap: label.left - icon.right,
+          }
+        }),
+    )
+    assert.ok(gaps.length >= 5, `found ${gaps.length} icon buttons`)
+    for (const { name, gap } of gaps)
+      assert.ok(gap >= 4, `${name}: gap of ${gap}px between icon and label`)
+  })
+})

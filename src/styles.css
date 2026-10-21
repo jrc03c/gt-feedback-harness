@@ -215,6 +215,12 @@ body {
   cursor: pointer;
 }
 
+/* A character's worth of space between a button's icon and its label; it
+   sits on the label, so nothing is left over when the label is hidden. */
+.harness-icon + .harness-label {
+  margin-left: 0.5em;
+}
+
 .harness-toolbar button[aria-pressed="true"],
 .harness-primary {
   background: var(--harness-accent);
