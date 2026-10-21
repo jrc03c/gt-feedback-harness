@@ -52,6 +52,7 @@ export function createFakeStore(seed = {}) {
         id: "dev-1",
         email: "dev@example.com",
         is_anonymous: false,
+        user_metadata: { user_name: "octocat" },
       }
       notify()
     },

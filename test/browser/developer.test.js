@@ -284,3 +284,12 @@ test("inputs and the buttons beside them are the same height", async () => {
     assert.equal(heights.linkInput, heights.linkButton, JSON.stringify(heights))
   })
 })
+
+test("the header names the signed-in developer by GitHub username", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    assert.equal(await page.locator(".harness-user").innerText(), "octocat")
+  })
+})

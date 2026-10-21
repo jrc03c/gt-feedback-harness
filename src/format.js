@@ -35,3 +35,17 @@ export function formatDuration(startIso, endIso) {
 export function programLabel(program) {
   return program.label ? program.label : program.gt_key
 }
+
+// Who is signed in: the GitHub username Supabase stores from the profile,
+// else the email, else a generic label so the header is never blank.
+export function userLabel(user) {
+  const meta = (user && user.user_metadata) || {}
+  for (const value of [
+    meta.user_name,
+    meta.preferred_username,
+    user && user.email,
+  ]) {
+    if (typeof value === "string" && value.trim()) return value.trim()
+  }
+  return "Signed in"
+}

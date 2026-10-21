@@ -1,6 +1,6 @@
 import { OAUTH_PROVIDER } from "../config.js"
 import { harnessPageUrl, renderErrorBanner } from "./banners.js"
-import { programLabel } from "../format.js"
+import { programLabel, userLabel } from "../format.js"
 import { renderProgramHeading } from "./heading.js"
 
 export function shareLinks(pageUrl, shareId) {
@@ -112,7 +112,7 @@ export async function mountDeveloper({
           </form>
           <section class="harness-programs"></section>
         </main>`
-      root.querySelector(".harness-user").textContent = user.email || ""
+      root.querySelector(".harness-user").textContent = userLabel(user)
       root.querySelector(".harness-setup-url").textContent = pageUrl
       root
         .querySelector('[data-action="signout"]')

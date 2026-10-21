@@ -5,6 +5,7 @@ import {
   formatDate,
   formatDuration,
   programLabel,
+  userLabel,
 } from "../../src/format.js"
 
 test("formatLines groups ranges by program and collapses single lines", () => {
@@ -43,4 +44,28 @@ test("formatDate renders a parseable local date and programLabel prefers the lab
   )
   assert.equal(programLabel({ label: "", gt_key: "abc1234" }), "abc1234")
   assert.equal(programLabel({ label: null, gt_key: "abc1234" }), "abc1234")
+})
+
+test("userLabel prefers the GitHub username, then the email, then a generic label", () => {
+  assert.equal(
+    userLabel({
+      email: "dev@example.com",
+      user_metadata: { user_name: "octocat", preferred_username: "octo" },
+    }),
+    "octocat",
+  )
+  assert.equal(
+    userLabel({
+      email: "dev@example.com",
+      user_metadata: { preferred_username: "octo" },
+    }),
+    "octo",
+  )
+  assert.equal(
+    userLabel({ email: "dev@example.com", user_metadata: {} }),
+    "dev@example.com",
+  )
+  assert.equal(userLabel({ email: "dev@example.com" }), "dev@example.com")
+  assert.equal(userLabel({ user_metadata: { user_name: "  " } }), "Signed in")
+  assert.equal(userLabel({}), "Signed in")
 })
