@@ -314,9 +314,11 @@ test("a collapsible note under the form explains where to find a program's key",
     assert.equal(await help.evaluate(el => el.open), false)
     await help.locator("summary").click()
     assert.equal(await help.evaluate(el => el.open), true)
-    assert.match(
-      await help.innerText(),
-      /https:\/\/www\.guidedtrack\.com\/programs\/<KEY>\/run/,
-    )
+    const text = await help.innerText()
+    for (const kind of ["preview", "test", "run"])
+      assert.match(
+        text,
+        new RegExp(`https://www\\.guidedtrack\\.com/programs/<KEY>/${kind}`),
+      )
   })
 })
