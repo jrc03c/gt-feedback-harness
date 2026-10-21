@@ -317,7 +317,7 @@ test("a collapsible note under the form explains where to find a program's key",
     const text = await help.innerText()
     assert.match(
       text,
-      /It appears in the program's URLs, like the preview, test, and run links:/,
+      /It appears in the program's publicly shareable URLs, like the preview, test, and run links:/,
     )
     assert.match(
       text,
