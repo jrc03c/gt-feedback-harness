@@ -57,6 +57,7 @@ export function createFakeSupabase(responses = {}, authState = {}) {
         return { data: {}, error: null }
       },
       async signOut() {
+        calls.push({ kind: "auth", name: "signOut", steps: [] })
         user = null
         return { error: null }
       },

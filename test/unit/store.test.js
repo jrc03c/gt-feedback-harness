@@ -232,6 +232,33 @@ test("renameProgram updates only the label, trimmed, and clears it when empty", 
   assert.deepEqual(second[0], ["update", [{ label: null }]])
 })
 
+test("deleteAccount removes every program, then the user, then signs out", async () => {
+  const { client, store: s } = store(
+    {
+      "from:program_overview": {
+        data: [{ id: "p1" }, { id: "p2" }],
+        error: null,
+      },
+      "from:sessions": { data: [], error: null },
+      "from:programs": { data: null, error: null },
+      "rpc:delete_account": { data: null, error: null },
+    },
+    { user: { id: "dev-1", is_anonymous: false } },
+  )
+  await s.deleteAccount()
+  const order = client.calls.map(c => `${c.kind}:${c.name}`)
+  const deletes = client
+    .stepsOf("from", "programs")
+    .filter(steps => steps[0][0] === "delete")
+    .map(steps => steps[1][1][1])
+  assert.deepEqual(deletes, ["p1", "p2"])
+  assert.ok(
+    order.indexOf("rpc:delete_account") > order.lastIndexOf("from:programs"),
+  )
+  assert.ok(order.indexOf("auth:signOut") > order.indexOf("rpc:delete_account"))
+  assert.equal(await s.getUser(), null)
+})
+
 test("signInWithProvider passes the provider and redirect", async () => {
   const { client, store: s } = store({})
   await s.signInWithProvider("google", "https://example.test/?dev")

@@ -50,6 +50,12 @@
           store: window.store,
           pageUrl: "https://example.test/harness/",
         })
+      window.mountAccount = () =>
+        window.harness.mountAccount({
+          root: document.getElementById("app"),
+          store: window.store,
+          pageUrl: "https://example.test/harness/",
+        })
       window.fixtureReady = true
     </script>
   </body>

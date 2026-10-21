@@ -14,6 +14,8 @@ export function parseRoute(search) {
     }
   }
 
+  if (params.has("account")) return { screen: "account" }
+
   const programId = value("program")
   if (programId) return { screen: "inbox", programId }
 

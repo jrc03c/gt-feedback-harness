@@ -65,3 +65,8 @@ test("session beats r beats program, and blank values fall through", () => {
   })
   assert.deepEqual(parseRoute("?program=%20"), { screen: "developer" })
 })
+
+test("account routes to the account screen", () => {
+  assert.deepEqual(parseRoute("?account"), { screen: "account" })
+  assert.deepEqual(parseRoute("?account&dev"), { screen: "account" })
+})

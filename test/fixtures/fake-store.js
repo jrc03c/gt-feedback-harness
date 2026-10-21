@@ -184,6 +184,17 @@ export function createFakeStore(seed = {}) {
       program.share_id = ("R" + ++counter).padEnd(24, "R")
       return program.share_id
     },
+    async deleteAccount() {
+      record("deleteAccount")
+      requireUser()
+      for (const p of state.programs.filter(
+        p => p.owner_id === state.user.id,
+      )) {
+        await store.deleteProgram(p.id)
+      }
+      state.user = null
+      notify()
+    },
     async deleteProgram(programId) {
       record("deleteProgram")
       for (const s of state.sessions.filter(s => s.program_id === programId)) {

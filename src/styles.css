@@ -358,16 +358,43 @@ body {
 }
 
 /* Developer screens */
-.harness-dev-header {
+/* The bar at the top of every developer page. */
+.harness-topbar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 14px;
 }
 
-.harness-dev-header h1 {
-  flex: 1;
+.harness-topbar .harness-user {
+  color: var(--harness-text);
+  font-weight: 600;
+}
+
+.harness-account dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+}
+
+.harness-account dd {
   margin: 0;
+}
+
+.harness-account .harness-danger-zone {
+  margin-top: 32px;
+  padding: 16px;
+  border: 1px solid #f0b4b0;
+  border-radius: 8px;
+  background: #fff5f5;
+}
+
+.harness-account button.harness-danger {
+  background: var(--harness-danger);
+  border-color: var(--harness-danger);
+  color: #fff;
 }
 
 .harness-register {
@@ -455,6 +482,7 @@ body {
 
 .harness-developer button,
 .harness-signin button,
+.harness-account button,
 .harness-inbox button,
 .harness-session button {
   font:

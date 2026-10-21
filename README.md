@@ -14,6 +14,8 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 
 4. Copy the run link or the test link and send it to reviewers.
 
+Your GitHub username and a Sign out button sit at the top of every developer page. The username links to your account page, where you can delete your account; that removes every program you registered with all its feedback and screenshots, and signing in again afterwards starts a fresh account.
+
 Feedback appears in your inbox. Sessions with unresolved items are flagged, and the table sorts by any column when you click its header. Each item shows the annotated screenshot, the typed text, the source lines that were on screen, and the run's variables. Click a screenshot to see it full size or open it in a new tab. You can mark items resolved (they turn gray), download the annotated PNG, and delete sessions.
 
 ### For reviewers

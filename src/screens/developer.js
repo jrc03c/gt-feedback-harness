@@ -61,6 +61,29 @@ async function show(
     return
   }
   await render(user)
+  renderTopbar(root, store, user)
+}
+
+// The bar every developer page starts with: who is signed in (linking to the
+// account page) and Sign out. Added after the page renders, as the first
+// child of its <main>.
+function renderTopbar(root, store, user) {
+  const main = root.querySelector("main")
+  if (!main || main.querySelector(".harness-topbar")) return
+  const bar = document.createElement("header")
+  bar.className = "harness-topbar"
+  bar.innerHTML = `<a class="harness-user" href="?account"></a><button type="button" data-action="signout">Sign out</button>`
+  bar.querySelector(".harness-user").textContent = userLabel(user)
+  bar
+    .querySelector('[data-action="signout"]')
+    .addEventListener("click", async () => {
+      try {
+        await store.signOut()
+      } catch (failure) {
+        renderErrorBanner(root, `Could not sign out: ${failure.message}`)
+      }
+    })
+  main.prepend(bar)
 }
 
 // signInWithProvider stays generic; add a label here to offer another provider.
@@ -97,11 +120,7 @@ export async function mountDeveloper({
       const programs = await store.listPrograms()
       root.innerHTML = `
         <main class="harness-home harness-developer">
-          <header class="harness-dev-header">
-            <h1>Your programs</h1>
-            <span class="harness-user"></span>
-            <button type="button" data-action="signout">Sign out</button>
-          </header>
+          <h1>Your programs</h1>
           <p>Before a link works, add this URL to the program's <strong>Publish</strong> page on GuidedTrack, under the pages allowed to run it:</p>
           <pre class="harness-setup-url"></pre>
           <form class="harness-register">
@@ -112,17 +131,7 @@ export async function mountDeveloper({
           </form>
           <section class="harness-programs"></section>
         </main>`
-      root.querySelector(".harness-user").textContent = userLabel(user)
       root.querySelector(".harness-setup-url").textContent = pageUrl
-      root
-        .querySelector('[data-action="signout"]')
-        .addEventListener("click", async () => {
-          try {
-            await store.signOut()
-          } catch (failure) {
-            renderErrorBanner(root, `Could not sign out: ${failure.message}`)
-          }
-        })
 
       const form = root.querySelector(".harness-register")
       form.addEventListener("submit", async event => {

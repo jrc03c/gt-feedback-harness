@@ -49,7 +49,7 @@ export function createStore({
     unwrap(await client.from("sessions").delete().eq("id", sessionId))
   }
 
-  return {
+  const api = {
     client,
 
     // Auth
@@ -201,6 +201,15 @@ export function createStore({
       )
       return shareId
     },
+    // Removes every program (screenshots first, then rows), then the user
+    // itself through delete_account(), then signs out. Signing in again with
+    // the same GitHub account afterwards creates a fresh user.
+    async deleteAccount() {
+      const programs = (await api.listPrograms()) || []
+      for (const program of programs) await api.deleteProgram(program.id)
+      unwrap(await client.rpc("delete_account"))
+      await api.signOut()
+    },
     async deleteProgram(programId) {
       const sessions =
         unwrap(
@@ -260,4 +269,5 @@ export function createStore({
     },
     deleteSession,
   }
+  return api
 }

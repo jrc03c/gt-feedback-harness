@@ -380,3 +380,38 @@ test("the screenshot and its caption form an inner card", async () => {
     assert.equal(result[2].captionInside, true)
   })
 })
+
+test("the inbox and session views carry the account bar", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.evaluate(() => window.mountInbox())
+    await page.waitForSelector(".harness-inbox tbody tr")
+    const bar = () =>
+      page.evaluate(() => {
+        const user = document.querySelector(".harness-topbar a.harness-user")
+        return {
+          name: user?.innerText,
+          href: user?.getAttribute("href"),
+          signout: document.querySelectorAll(
+            '.harness-topbar [data-action="signout"]',
+          ).length,
+          first:
+            document.querySelector("#app main")?.firstElementChild?.className,
+        }
+      })
+    assert.deepEqual(await bar(), {
+      name: "octocat",
+      href: "?account",
+      signout: 1,
+      first: "harness-topbar",
+    })
+    await page.evaluate(() => window.mountSession("s-1"))
+    await page.waitForSelector(".harness-item")
+    assert.deepEqual(await bar(), {
+      name: "octocat",
+      href: "?account",
+      signout: 1,
+      first: "harness-topbar",
+    })
+  })
+})

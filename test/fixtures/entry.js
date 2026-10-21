@@ -7,6 +7,7 @@ import { mountProgram, createEmitter } from "../../src/gt-embed.js"
 import { createControls } from "../../src/controls.js"
 import { openFeedbackModal } from "../../src/feedback-modal.js"
 import { mountDeveloper } from "../../src/screens/developer.js"
+import { mountAccount } from "../../src/screens/account.js"
 import { mountInbox } from "../../src/screens/inbox.js"
 import { mountSession } from "../../src/screens/session.js"
 import { mountReviewer } from "../../src/screens/reviewer.js"
@@ -28,6 +29,7 @@ window.harness = {
   createControls,
   openFeedbackModal,
   mountDeveloper,
+  mountAccount,
   mountInbox,
   mountSession,
   mountReviewer,

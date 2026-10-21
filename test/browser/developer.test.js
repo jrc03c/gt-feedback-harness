@@ -290,6 +290,12 @@ test("the header names the signed-in developer by GitHub username", async () => 
     await open(page, baseUrl)
     await page.click(".harness-signin button")
     await page.waitForSelector(".harness-program-card")
-    assert.equal(await page.locator(".harness-user").innerText(), "octocat")
+    const user = page.locator(".harness-topbar a.harness-user")
+    assert.equal(await user.innerText(), "octocat")
+    assert.equal(await user.getAttribute("href"), "?account")
+    assert.equal(
+      await page.locator('.harness-topbar [data-action="signout"]').count(),
+      1,
+    )
   })
 })

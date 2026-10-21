@@ -4,6 +4,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, isConfigured } from "./config.js"
 import { createStore } from "./store.js"
 import { runReviewer } from "./screens/reviewer-flow.js"
 import { mountDeveloper } from "./screens/developer.js"
+import { mountAccount } from "./screens/account.js"
 import { mountInbox } from "./screens/inbox.js"
 import { mountSession } from "./screens/session.js"
 import { renderErrorBanner } from "./screens/banners.js"
@@ -21,6 +22,7 @@ if (!isConfigured()) {
   const screens = {
     reviewer: () => runReviewer({ root, route, store }),
     developer: () => mountDeveloper({ root, store }),
+    account: () => mountAccount({ root, store }),
     inbox: () => mountInbox({ root, store, programId: route.programId }),
     session: () => mountSession({ root, store, sessionId: route.sessionId }),
   }

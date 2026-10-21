@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(38);
 
 -- Four users: two developers (real accounts) and two anonymous reviewers.
 insert into auth.users (id, instance_id, aud, role, email, is_anonymous) values
@@ -144,5 +144,16 @@ select lives_ok($$ delete from sessions where id = '20000000-0000-0000-0000-0000
 select pg_temp.logout();
 select is((select count(*) from items where session_id = '20000000-0000-0000-0000-000000000001')::int, 0,
   'the session''s items were deleted with it');
+-- 35-38: delete_account removes only the caller, and only for developers
+select pg_temp.login('00000000-0000-0000-0000-000000000003', true);
+select throws_ok($$ select delete_account() $$, '42501', null,
+  'an anonymous reviewer cannot delete an account');
+select pg_temp.login('00000000-0000-0000-0000-000000000002', false);
+select lives_ok($$ select delete_account() $$, 'a developer can delete their own account');
+select pg_temp.logout();
+select is((select count(*) from auth.users where id = '00000000-0000-0000-0000-000000000002')::int, 0,
+  'the caller''s user row is gone');
+select is((select count(*) from auth.users where id = '00000000-0000-0000-0000-000000000001')::int, 1,
+  'other users are untouched');
 select * from finish();
 rollback;
