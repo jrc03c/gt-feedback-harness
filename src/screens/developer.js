@@ -131,11 +131,12 @@ export async function mountDeveloper({
           </form>
           <details class="harness-help">
             <summary>How can I find my program's key?</summary>
-            <p>The key is the short identifier GuidedTrack gives every program. It appears in the program's URLs, for example the preview, test and run links:</p>
+            <p>The key is the short identifier GuidedTrack gives every program. It appears in the program's URLs, like the preview, test, and run links:</p>
             <pre>https://www.guidedtrack.com/programs/&lt;KEY&gt;/preview
 https://www.guidedtrack.com/programs/&lt;KEY&gt;/test
 https://www.guidedtrack.com/programs/&lt;KEY&gt;/run</pre>
             <p>Copy the part that stands in for <code>&lt;KEY&gt;</code>.</p>
+            <p><strong>NOTE:</strong> The key usually includes both numbers and letters, and it's <em>not</em> the same thing as the program's <em>number</em>, which appears (e.g.) in its edit URL: <code>https://www.guidedtrack.com/programs/&lt;NUMBER&gt;/edit</code></p>
           </details>
           <section class="harness-programs"></section>
         </main>`

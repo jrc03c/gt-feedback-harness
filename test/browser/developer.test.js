@@ -315,6 +315,24 @@ test("a collapsible note under the form explains where to find a program's key",
     await help.locator("summary").click()
     assert.equal(await help.evaluate(el => el.open), true)
     const text = await help.innerText()
+    assert.match(
+      text,
+      /It appears in the program's URLs, like the preview, test, and run links:/,
+    )
+    assert.match(
+      text,
+      /NOTE: The key usually includes both numbers and letters/,
+    )
+    assert.match(
+      text,
+      /https:\/\/www\.guidedtrack\.com\/programs\/<NUMBER>\/edit/,
+    )
+    const note = help.locator("p", { hasText: "NOTE:" })
+    assert.equal(await note.locator("strong").innerText(), "NOTE:")
+    assert.deepEqual(await note.locator("em").allInnerTexts(), [
+      "not",
+      "number",
+    ])
     for (const kind of ["preview", "test", "run"])
       assert.match(
         text,
