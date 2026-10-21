@@ -385,11 +385,22 @@ body {
   font-size: 13px;
 }
 
+/* Inputs and the buttons beside them share explicit box metrics, so they come
+   out the same height in every browser rather than each one's defaults. */
+.harness-register input,
+.harness-register button {
+  height: 36px;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: normal;
+}
+
 .harness-register input {
   font:
     15px system-ui,
     sans-serif;
-  padding: 6px 8px;
+  padding: 0 8px;
   border: 1px solid #bbb;
   border-radius: 4px;
 }
@@ -417,10 +428,20 @@ body {
   width: 64px;
 }
 
+.harness-link input,
+.harness-link button {
+  height: 30px;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: normal;
+}
+
 .harness-link input {
   flex: 1;
+  min-width: 0;
   font: 13px monospace;
-  padding: 4px 6px;
+  padding: 0 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }

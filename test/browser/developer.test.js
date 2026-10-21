@@ -262,3 +262,25 @@ test("cancelling the rename prompt changes nothing", async () => {
     )
   })
 })
+
+test("inputs and the buttons beside them are the same height", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl)
+    await page.click(".harness-signin button")
+    await page.waitForSelector(".harness-program-card")
+    const heights = await page.evaluate(() => {
+      const h = el => el.getBoundingClientRect().height
+      const register = document.querySelector(".harness-register")
+      const link = document.querySelector(".harness-link")
+      return {
+        registerInputs: [...register.querySelectorAll("input")].map(h),
+        registerButton: h(register.querySelector("button")),
+        linkInput: h(link.querySelector("input")),
+        linkButton: h(link.querySelector("button")),
+      }
+    })
+    for (const input of heights.registerInputs)
+      assert.equal(input, heights.registerButton, JSON.stringify(heights))
+    assert.equal(heights.linkInput, heights.linkButton, JSON.stringify(heights))
+  })
+})
