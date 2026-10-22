@@ -6,6 +6,9 @@ export const SUPABASE_URL = "https://rubbnzscqjsoipfhmwgj.supabase.co"
 export const SUPABASE_ANON_KEY =
   "sb_publishable_y3sWX2tUdd64rrl6-EMpxQ_8Nnc6CZ1"
 export const OAUTH_PROVIDER = "github"
+// Where the harness is published; the command line adds it to programs'
+// Publish pages and builds reviewer links from it.
+export const HARNESS_PAGE_URL = "https://jrc03c.github.io/gt-feedback-harness/"
 
 export function isConfiguredValue(url, key) {
   return (

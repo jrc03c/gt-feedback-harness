@@ -268,3 +268,34 @@ test("signInWithProvider passes the provider and redirect", async () => {
     options: { redirectTo: "https://example.test/?dev" },
   })
 })
+
+test("signInWithPassword signs in with the email and password and returns the user", async () => {
+  const { client, store: s } = store({})
+  const user = await s.signInWithPassword("dev@example.com", "secret")
+  assert.equal(user.id, "password-uid")
+  const [call] = client.stepsOf("auth", "signInWithPassword")
+  assert.deepEqual(call[0][1][0], {
+    email: "dev@example.com",
+    password: "secret",
+  })
+})
+
+test("setScriptPassword sets a fresh random password on the account and returns it with the email", async () => {
+  const { client, store: s } = store(
+    {},
+    { user: { id: "dev-1", email: "dev@example.com" } },
+  )
+  const first = await s.setScriptPassword()
+  const second = await s.setScriptPassword()
+  assert.equal(first.email, "dev@example.com")
+  assert.match(first.password, /^[A-Za-z0-9]{32}$/)
+  assert.notEqual(first.password, second.password)
+  const calls = client.stepsOf("auth", "updateUser")
+  assert.equal(calls.length, 2)
+  assert.deepEqual(calls[0][0][1][0], { password: first.password })
+})
+
+test("setScriptPassword refuses when nobody is signed in", async () => {
+  const { store: s } = store({})
+  await assert.rejects(() => s.setScriptPassword(), /Not signed in/)
+})

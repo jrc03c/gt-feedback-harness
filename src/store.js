@@ -67,6 +67,19 @@ export function createStore({
         }),
       )
     },
+    // For scripts: signs in with the email and a script password.
+    async signInWithPassword(email, password) {
+      return unwrap(await client.auth.signInWithPassword({ email, password }))
+        .user
+    },
+    // Gives the signed-in developer a fresh random password for scripts,
+    // replacing any earlier one, and returns it with the account's email.
+    async setScriptPassword() {
+      const user = await requireUser()
+      const password = newShareId(32)
+      unwrap(await client.auth.updateUser({ password }))
+      return { email: user.email, password }
+    },
     async signOut() {
       unwrap(await client.auth.signOut())
     },

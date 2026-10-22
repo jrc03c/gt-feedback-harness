@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "gt-feedback-harness": "bin/gt-feedback-harness.mjs"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
   "description": "Embed a GuidedTrack program, annotate screenshots, and send feedback to the developer.",
   "scripts": {
     "build": "node build.mjs",

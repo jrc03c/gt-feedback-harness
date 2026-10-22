@@ -56,6 +56,14 @@ export function createFakeStore(seed = {}) {
       }
       notify()
     },
+    async setScriptPassword() {
+      record("setScriptPassword")
+      requireUser()
+      return {
+        email: state.user.email,
+        password: ("P" + ++counter).padEnd(32, "x"),
+      }
+    },
     async signOut() {
       record("signOut")
       state.user = null

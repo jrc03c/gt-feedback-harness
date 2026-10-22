@@ -82,14 +82,57 @@ test("a failed deletion shows an error and stays on the page", async () => {
       }
     })
     await page.click('.harness-account [data-action="delete-account"]')
-    await page.waitForSelector(".harness-account .harness-error:not([hidden])")
+    await page.waitForSelector(
+      ".harness-danger-zone .harness-error:not([hidden])",
+    )
     assert.match(
-      await page.locator(".harness-account .harness-error").innerText(),
+      await page.locator(".harness-danger-zone .harness-error").innerText(),
       /network down/,
     )
     assert.equal(
       await page
         .locator('.harness-account [data-action="delete-account"]')
+        .isDisabled(),
+      false,
+    )
+  })
+})
+
+test("generating a script password shows it once as .env lines", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openAccount(page, baseUrl)
+    const section = page.locator(".harness-script-access")
+    assert.match(await section.innerText(), /Script access/)
+    assert.equal(await section.locator("pre").count(), 0)
+    await section.locator('[data-action="script-password"]').click()
+    await page.waitForSelector(".harness-script-access pre")
+    const text = await section.locator("pre").innerText()
+    assert.match(text, /^GT_FEEDBACK_HARNESS_EMAIL="dev@example\.com"\n/)
+    assert.match(text, /GT_FEEDBACK_HARNESS_PASSWORD="[A-Za-z0-9]{32}"$/)
+    const calls = await page.evaluate(() => window.store.calls)
+    assert.ok(calls.includes("setScriptPassword"), calls.join(","))
+  })
+})
+
+test("a failed script password generation shows an error", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await openAccount(page, baseUrl)
+    await page.evaluate(() => {
+      window.store.setScriptPassword = async () => {
+        throw new Error("auth down")
+      }
+    })
+    await page.click('.harness-script-access [data-action="script-password"]')
+    await page.waitForSelector(
+      ".harness-script-access .harness-error:not([hidden])",
+    )
+    assert.match(
+      await page.locator(".harness-script-access .harness-error").innerText(),
+      /auth down/,
+    )
+    assert.equal(
+      await page
+        .locator('.harness-script-access [data-action="script-password"]')
         .isDisabled(),
       false,
     )

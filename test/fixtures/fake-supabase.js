@@ -56,6 +56,23 @@ export function createFakeSupabase(responses = {}, authState = {}) {
         })
         return { data: {}, error: null }
       },
+      async signInWithPassword(credentials) {
+        calls.push({
+          kind: "auth",
+          name: "signInWithPassword",
+          steps: [["credentials", [credentials]]],
+        })
+        user = { id: "password-uid", email: credentials.email }
+        return { data: { user, session: { user } }, error: null }
+      },
+      async updateUser(attributes) {
+        calls.push({
+          kind: "auth",
+          name: "updateUser",
+          steps: [["attributes", [attributes]]],
+        })
+        return { data: { user }, error: null }
+      },
       async signOut() {
         calls.push({ kind: "auth", name: "signOut", steps: [] })
         user = null

@@ -2,11 +2,9 @@ import { OAUTH_PROVIDER } from "../config.js"
 import { harnessPageUrl, renderErrorBanner } from "./banners.js"
 import { programLabel, userLabel } from "../format.js"
 import { renderProgramHeading } from "./heading.js"
+import { shareLinks } from "../links.js"
 
-export function shareLinks(pageUrl, shareId) {
-  const base = `${pageUrl}?r=${encodeURIComponent(shareId)}&mode=`
-  return { run: `${base}run`, test: `${base}test` }
-}
+export { shareLinks }
 
 function isDeveloper(user) {
   return Boolean(user) && user.is_anonymous !== true

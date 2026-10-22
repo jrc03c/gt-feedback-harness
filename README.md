@@ -24,6 +24,37 @@ Open the link, run the program, click **Give feedback** at any point, draw with 
 
 "Reset everything" in GuidedTrack's menu works because the link keeps the share id and mode in the query string (the reviewer's name is remembered separately, in the browser). It only brings you back to the harness when you opened the harness at the address you saved on the Publish page, for example `https://<user>.github.io/<repo>/` rather than `https://<user>.github.io/<repo>/index.html`.
 
+### For scripts and agents
+
+Everything the developer pages do is also available from the command line, so a script or a coding agent can register programs, hand out feedback links, and read feedback back. The CLI prints JSON on stdout and a JSON error on stderr with exit code 1.
+
+1. On the harness's account page, click **Generate script password**. It shows two `.env` lines. Put them in a `.env` file in the project where the scripts run (or export them). The password gives the same access as your GitHub sign-in, and generating a new one revokes the old one.
+
+2. For `setup`, also provide your GuidedTrack login as `GT_EMAIL` and `GT_PASSWORD`, so the CLI can find programs by name and add the harness URL to their Publish page for you.
+
+3. Install the CLI in that project from GitHub. It is pinned to a commit by the lock file; update it with `npm update gt-feedback-harness`.
+
+```
+npm install --save-dev github:jrc03c/gt-feedback-harness
+```
+
+Then, from that project:
+
+```
+npx gt-feedback-harness setup "My Program"        # by name, or by key
+npx gt-feedback-harness programs
+npx gt-feedback-harness sessions <key or id>
+npx gt-feedback-harness feedback <key or id> --out feedback   # add --all for resolved items too
+npx gt-feedback-harness resolve <item id>         # or unresolve
+npx gt-feedback-harness --help
+```
+
+`setup` is safe to repeat: it adds the harness URL to the program's Publish page only if it is missing, registers the program only if it is new, and always prints the run and test links. Without GuidedTrack credentials it accepts a key only and skips the Publish page step.
+
+`feedback` writes each item's screenshot to the output directory as the raw `.webp`, the annotations as an `.svg` overlay, and, when ImageMagick (`magick` or `convert`) is installed, the flattened `.png`. The JSON includes each item's text, annotations, the source lines and variables captured with it, and the GuidedTrack run id.
+
+A typical agent loop: push the program to GuidedTrack, run `setup`, give the links to a reviewer, then run `feedback` and `resolve` as items are handled.
+
 ## Known limits
 
 - Programs that use `*question: captcha` do not work in the harness, because the harness has no reCAPTCHA site key to give GuidedTrack.
@@ -45,7 +76,9 @@ Requirements: Node 24. Browser tests need Playwright 1.49.0 and its Chromium. Th
 - `npm test` builds, then runs the unit tests, then the browser tests
 - `npm run format`
 
-Backend: Supabase. `src/config.js` holds the project URL and publishable key (public). `npm run test:db` runs the database policy tests against the project (see "Setting up the backend"); CI runs them against a throwaway local database.
+Backend: Supabase. `src/config.js` holds the project URL, publishable key (public), and the published harness URL.
+
+Two live tests skip unless credentials are in the environment: `GT_EMAIL` and `GT_PASSWORD` for the GuidedTrack client, and `GT_FEEDBACK_HARNESS_EMAIL` and `GT_FEEDBACK_HARNESS_PASSWORD` for password sign-in to the real project. `npm run test:db` runs the database policy tests against the project (see "Setting up the backend"); CI runs them against a throwaway local database.
 
 Serve the repository root with any static server (for example `npx serve .`) and open `index.html` through it. Opening the file directly from disk does not work because the page uses module scripts.
 
@@ -54,7 +87,7 @@ Serve the repository root with any static server (for example `npx serve .`) and
 The project's settings live in the Supabase dashboard, not in this repository. `supabase/config.toml` only configures a local stack.
 
 - **Project options** (when creating the project): do not automatically expose new tables to the Data API, and enable automatic row-level security.
-- **Authentication, Sign In / Providers**: enable Anonymous sign-ins, and enable the GitHub provider with the callback URL `https://<ref>.supabase.co/auth/v1/callback` (where `<ref>` is the project ref) set on the GitHub OAuth app.
+- **Authentication, Sign In / Providers**: enable Anonymous sign-ins, enable the Email provider (script passwords sign in with it), and enable the GitHub provider with the callback URL `https://<ref>.supabase.co/auth/v1/callback` (where `<ref>` is the project ref) set on the GitHub OAuth app.
 - **Authentication, URL Configuration**: set the Site URL to `https://jrc03c.github.io/gt-feedback-harness/` and add `https://jrc03c.github.io/gt-feedback-harness/**` to the redirect allow list.
 
 The deploy workflow needs two repository secrets, the same values as the local `.env` file described below:
