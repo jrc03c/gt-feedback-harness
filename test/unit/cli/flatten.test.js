@@ -77,7 +77,62 @@ test("the flattener uses the first ImageMagick command that runs, and reports wh
     run: async () => {
       throw new Error("ENOENT")
     },
+    render: async () => false,
   })
   assert.equal(await none(spec), null)
   assert.match(none.unavailable, /ImageMagick/)
+})
+
+test("a renderer that fails is reported rather than thrown", async () => {
+  const flatten = createFlattener({
+    run: async () => {
+      throw new Error("ENOENT")
+    },
+    render: async () => {
+      throw new Error("browser crashed")
+    },
+  })
+  const spec = {
+    raw: "a.webp",
+    overlay: "a.svg",
+    out: "a.png",
+    width: 8,
+    height: 6,
+  }
+  assert.equal(await flatten(spec), null)
+  assert.match(flatten.unavailable, /browser crashed/)
+})
+
+test("the flattener falls back to a browser renderer when ImageMagick is missing", async () => {
+  const rendered = []
+  const flatten = createFlattener({
+    run: async () => {
+      throw new Error("ENOENT")
+    },
+    render: async spec => {
+      rendered.push(spec)
+      return true
+    },
+  })
+  const spec = {
+    raw: "a.webp",
+    overlay: "a.svg",
+    out: "a.png",
+    width: 8,
+    height: 6,
+  }
+  assert.equal(await flatten(spec), "a.png")
+  assert.equal(await flatten(spec), "a.png")
+  assert.equal(rendered.length, 2)
+  assert.equal(flatten.unavailable, undefined)
+
+  const none = createFlattener({
+    run: async () => {
+      throw new Error("ENOENT")
+    },
+    render: async () => false,
+  })
+  assert.equal(await none(spec), null)
+  assert.match(none.unavailable, /ImageMagick/)
+  assert.match(none.unavailable, /Playwright/)
 })

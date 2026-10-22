@@ -26,7 +26,7 @@ Commands
   feedback <program key or id> [--all] [--out DIR]
       Feedback items (unresolved unless --all) with screenshots written to
       DIR (default "feedback"): raw .webp, overlay .svg, and annotated .png
-      when ImageMagick is installed.
+      (via ImageMagick or Playwright, whichever is installed).
   resolve <item id> | unresolve <item id>
 
 Credentials, from the environment or a .env file in the current directory
