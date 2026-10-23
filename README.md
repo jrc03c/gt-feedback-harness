@@ -12,7 +12,7 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 
 3. On GuidedTrack, open the program's **Publish** page and add the harness URL to the list of pages allowed to run the program. The harness URL is the page's own address, for example `https://<user>.github.io/<repo>/`. Adding it once covers every link.
 
-4. Copy the run link or the test link and send it to reviewers.
+4. Copy the run link or the test link and send it to reviewers. To address a link to one person, append `&name=` and their name (URL-encoded, so `&name=Bea%20Lee`); the harness fills in the **Your name (optional)** field with it when the run starts, and the reviewer can still change it.
 
 Your GitHub username and a Sign out button sit at the top of every developer page. The username links to your account page, where you can delete your account; that removes every program you registered with all its feedback and screenshots, and signing in again afterwards starts a fresh account.
 
@@ -22,7 +22,7 @@ Feedback appears in your inbox. Sessions with unresolved items are flagged, and 
 
 Open the link, run the program, click **Give feedback** at any point, draw with the pen or highlighter, add notes that point at parts of the page, type in the box, and click **Send feedback**. There is nothing to install and no account to create.
 
-"Reset everything" in GuidedTrack's menu works because the link keeps the share id and mode in the query string (the reviewer's name is remembered separately, in the browser). It only brings you back to the harness when you opened the harness at the address you saved on the Publish page, for example `https://<user>.github.io/<repo>/` rather than `https://<user>.github.io/<repo>/index.html`.
+"Reset everything" in GuidedTrack's menu works because the link keeps the share id and mode in the query string (the reviewer's name is remembered separately, in the browser, unless the link carries it). It only brings you back to the harness when you opened the harness at the address you saved on the Publish page, for example `https://<user>.github.io/<repo>/` rather than `https://<user>.github.io/<repo>/index.html`.
 
 ### For scripts and agents
 
@@ -60,7 +60,7 @@ A typical agent loop: push the program to GuidedTrack, run `setup`, give the lin
 - Programs that use `*question: captcha` do not work in the harness, because the harness has no reCAPTCHA site key to give GuidedTrack.
 - Screenshots are made by redrawing the page's DOM, not by copying the screen. Fixed-position elements other than the harness's own controls may land where they sit in the document rather than where they appeared on screen. Audio players, embedded videos, other embedded frames, and images whose server does not allow cross-origin reads appear as gray boxes of the same size (see `docs/backlog.md` for the planned fix).
 - GuidedTrack serves its stylesheets without cross-origin headers, so the screenshot library cannot read their icon font declarations. The deploy workflow therefore copies those declarations, with the font files inlined, into `gt-fonts.css` next to the site, on every deploy and once a week; the capture hands that file to the screenshot library. Icons GuidedTrack adds between refreshes are missing from screenshots until the next deploy, and without the file (for example when serving the repository locally) screenshots lack the icons (the back arrow, the menu, the points star) altogether. `npm run fonts` writes the file at the repository root (it is git-ignored).
-- The reviewer's name is stored in the browser, not in the link, so it does not carry over to another browser or device.
+- A name typed into the harness is stored in the browser, not in the link, so it does not carry over to another browser or device. A name put in the link (`&name=...`) does carry over, and replaces the remembered one each time the link is opened.
 - "Reset everything" returns to the harness only when the harness was opened at the exact address saved on the Publish page (`/<repo>/`, not `/<repo>/index.html`).
 - Free-tier Supabase pauses a project after a week without traffic. The weekly CI ping prevents it.
 - Anonymous sign-ins are limited to 30 per hour per IP address.

@@ -2,14 +2,58 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { withPage } from "../helpers/browser.js"
 
-async function open(page, baseUrl, shareId, mode) {
+async function open(page, baseUrl, shareId, mode, name = "") {
   await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)
   await page.waitForFunction(() => window.fixtureReady === true)
-  await page.evaluate(({ shareId, mode }) => window.run(shareId, mode), {
-    shareId,
-    mode,
-  })
+  await page.evaluate(
+    ({ shareId, mode, name }) => window.run(shareId, mode, name),
+    { shareId, mode, name },
+  )
 }
+
+test("a name in the link fills the name field and the session before anything is sent", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await open(page, baseUrl, "SHARESHARESHARESHARESHAR", "run", "Bea Lee")
+    await page.waitForSelector(".program_container .main p")
+    assert.equal(await page.inputValue(".harness-name input"), "Bea Lee")
+    assert.equal(
+      await page.evaluate(() => window.store.state.sessions[0].reviewer_name),
+      "Bea Lee",
+    )
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem("harness:reviewer-name")),
+      "Bea Lee",
+    )
+  })
+})
+
+test("a name in the link replaces a name remembered from an earlier visit", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)
+    await page.evaluate(() =>
+      localStorage.setItem("harness:reviewer-name", "Old Name"),
+    )
+    await open(page, baseUrl, "SHARESHARESHARESHARESHAR", "run", "Bea Lee")
+    await page.waitForSelector(".program_container .main p")
+    assert.equal(await page.inputValue(".harness-name input"), "Bea Lee")
+    assert.equal(
+      await page.evaluate(() => window.store.state.sessions[0].reviewer_name),
+      "Bea Lee",
+    )
+  })
+})
+
+test("without a name in the link the remembered name is kept", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)
+    await page.evaluate(() =>
+      localStorage.setItem("harness:reviewer-name", "Old Name"),
+    )
+    await open(page, baseUrl, "SHARESHARESHARESHARESHAR", "run")
+    await page.waitForSelector(".program_container .main p")
+    assert.equal(await page.inputValue(".harness-name input"), "Old Name")
+  })
+})
 
 test("a valid link signs in anonymously, creates a session, and stores sent items", async () => {
   await withPage(async ({ page, baseUrl }) => {

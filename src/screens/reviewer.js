@@ -96,7 +96,7 @@ function readName(storage) {
   }
 }
 
-function saveName(storage, value) {
+export function saveName(storage, value) {
   try {
     storage.setItem(NAME_KEY, value)
   } catch {

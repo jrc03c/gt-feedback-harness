@@ -1,4 +1,4 @@
-import { mountReviewer, NAME_KEY } from "./reviewer.js"
+import { mountReviewer, NAME_KEY, saveName } from "./reviewer.js"
 import { renderInvalidLinkBanner, renderErrorBanner } from "./banners.js"
 
 export const SESSION_KEY = shareId => `harness:session:${shareId}`
@@ -39,6 +39,11 @@ export async function runReviewer({
       root,
       `The feedback backend is unavailable: ${error.message}. Tell the developer.`,
     )
+
+  // A name in the link (?name=...) is the developer addressing this link to
+  // one person. It replaces whatever name the browser remembered, so the
+  // session, the name field, and every item start out with it.
+  if (route.name) saveName(storage, route.name)
 
   let resolved
   let sessionId = null

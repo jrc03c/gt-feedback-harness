@@ -11,6 +11,7 @@ export function parseRoute(search) {
       screen: "reviewer",
       shareId,
       mode: params.get("mode") === "test" ? "test" : "run",
+      name: value("name"),
     }
   }
 

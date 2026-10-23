@@ -13,18 +13,36 @@ test("r routes to the reviewer screen, run mode unless mode=test", () => {
     screen: "reviewer",
     shareId: "ABC",
     mode: "test",
+    name: "",
   })
   assert.deepEqual(parseRoute("?r=ABC"), {
     screen: "reviewer",
     shareId: "ABC",
     mode: "run",
+    name: "",
   })
   assert.deepEqual(parseRoute("?r=ABC&mode=banana&__gt_embed=tok"), {
     screen: "reviewer",
     shareId: "ABC",
     mode: "run",
+    name: "",
   })
   assert.deepEqual(parseRoute("?r=%20%20"), { screen: "developer" })
+})
+
+test("name on a reviewer link is carried along, trimmed", () => {
+  assert.deepEqual(parseRoute("?r=ABC&mode=run&name=Bea%20Lee"), {
+    screen: "reviewer",
+    shareId: "ABC",
+    mode: "run",
+    name: "Bea Lee",
+  })
+  assert.deepEqual(parseRoute("?r=ABC&name=%20%20"), {
+    screen: "reviewer",
+    shareId: "ABC",
+    mode: "run",
+    name: "",
+  })
 })
 
 test("program and session route to the inbox and session screens", () => {
@@ -53,6 +71,7 @@ test("session beats r beats program, and blank values fall through", () => {
     screen: "reviewer",
     shareId: "ABC",
     mode: "run",
+    name: "",
   })
   assert.deepEqual(parseRoute("?session=s1&program=p1"), {
     screen: "session",
@@ -62,6 +81,7 @@ test("session beats r beats program, and blank values fall through", () => {
     screen: "reviewer",
     shareId: "ABC",
     mode: "run",
+    name: "",
   })
   assert.deepEqual(parseRoute("?program=%20"), { screen: "developer" })
 })

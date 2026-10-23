@@ -20,10 +20,10 @@
           },
         ],
       })
-      window.run = (shareId, mode = "test") =>
+      window.run = (shareId, mode = "test", name = "") =>
         window.harness.runReviewer({
           root: document.getElementById("app"),
-          route: { screen: "reviewer", shareId, mode },
+          route: { screen: "reviewer", shareId, mode, name },
           store: window.store,
           assetBase: "/test/fixtures/gt-stub",
           heartbeatMs: 200,
