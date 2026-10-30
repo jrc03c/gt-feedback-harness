@@ -145,6 +145,12 @@ export function createCommands({
       return result
     },
 
+    async unregister(term) {
+      const program = await findRegistered(term)
+      await store.deleteProgram(program.id)
+      return { program: summary(program), deleted: true }
+    },
+
     async resolve(itemId) {
       await store.setResolved(itemId, true)
       return { id: itemId, resolved: true }

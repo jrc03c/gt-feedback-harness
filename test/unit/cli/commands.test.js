@@ -271,3 +271,23 @@ test("resolve and unresolve flip an item's resolved state", async () => {
   })
   assert.equal(store.state.items[0].resolved_at, null)
 })
+
+test("unregister deletes a program with its sessions, by key or harness id", async () => {
+  const { store, commands } = setup(seeded())
+  assert.deepEqual(await commands.unregister(KEY), {
+    program: {
+      id: "p-1",
+      gt_key: KEY,
+      label: "Demo",
+      share_id: "SHARESHARESHARESHARESHAR",
+    },
+    deleted: true,
+  })
+  assert.equal(store.state.programs.length, 0)
+  assert.equal(store.state.sessions.length, 0)
+  assert.equal(store.state.items.length, 0)
+  await assert.rejects(
+    () => commands.unregister("p-1"),
+    /No registered program/,
+  )
+})

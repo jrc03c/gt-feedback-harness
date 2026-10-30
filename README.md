@@ -46,12 +46,15 @@ npx gt-feedback-harness programs
 npx gt-feedback-harness sessions <key or id>
 npx gt-feedback-harness feedback <key or id> --out feedback   # add --all for resolved items too
 npx gt-feedback-harness resolve <item id>         # or unresolve
+npx gt-feedback-harness unregister <key or id>    # deletes its feedback too
 npx gt-feedback-harness --help
 ```
 
 `setup` is safe to repeat: it adds the harness URL to the program's Publish page only if it is missing, registers the program only if it is new, and always prints the run and test links. Without GuidedTrack credentials it accepts a key only and skips the Publish page step.
 
 `feedback` writes each item's screenshot to the output directory as the raw `.webp`, the annotations as an `.svg` overlay, and the flattened `.png`. The PNG is made with ImageMagick (`magick` or `convert`) when installed, and otherwise with Playwright's Chromium when that is installed (the dev container has it); when neither is, the JSON carries a warning and the overlay SVGs still describe the annotations. The JSON includes each item's text, annotations, the source lines and variables captured with it, and the GuidedTrack run id.
+
+`unregister` deletes a program from the harness along with all of its sessions, feedback, and screenshots, without asking for confirmation. It does not touch the program on GuidedTrack, including the harness URL on its Publish page.
 
 A typical agent loop: push the program to GuidedTrack, run `setup`, give the links to a reviewer, then run `feedback` and `resolve` as items are handled.
 

@@ -28,6 +28,9 @@ Commands
       DIR (default "feedback"): raw .webp, overlay .svg, and annotated .png
       (via ImageMagick or Playwright, whichever is installed).
   resolve <item id> | unresolve <item id>
+  unregister <program key or id>
+      Delete the program from the harness with all its sessions, feedback,
+      and screenshots. Its links stop working. No confirmation is asked.
 
 Credentials, from the environment or a .env file in the current directory
   GT_FEEDBACK_HARNESS_EMAIL, GT_FEEDBACK_HARNESS_PASSWORD
@@ -47,6 +50,7 @@ const COMMANDS = [
   "feedback",
   "resolve",
   "unresolve",
+  "unregister",
 ]
 
 async function main(argv) {
@@ -93,6 +97,8 @@ async function main(argv) {
       commands.feedback(required(positional[0], "a program key or id"), flags),
     resolve: () => commands.resolve(required(positional[0], "an item id")),
     unresolve: () => commands.unresolve(required(positional[0], "an item id")),
+    unregister: () =>
+      commands.unregister(required(positional[0], "a program key or id")),
   }
   await store.signInWithPassword(harness.email, harness.password)
   const result = await handlers[command]()

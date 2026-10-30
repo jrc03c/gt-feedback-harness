@@ -32,6 +32,7 @@ test("help lists the commands and the credentials they need", async () => {
     "feedback",
     "resolve",
     "unresolve",
+    "unregister",
   ]) {
     assert.match(stdout, new RegExp(`\\b${word}\\b`))
   }
