@@ -113,6 +113,21 @@ test("the heartbeat updates last_seen_at", async () => {
   })
 })
 
+test("capture=screen on the link reaches the capture", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/reviewer-flow.html`)
+    await page.waitForFunction(() => window.fixtureReady === true)
+    await page.evaluate(() => {
+      window.installFakeDisplay()
+      return window.run("SHARESHARESHARESHARESHAR", "test", "", "screen")
+    })
+    await page.waitForSelector(".program_container .main p")
+    await page.click(".harness-feedback-button")
+    await page.waitForSelector(".harness-modal img")
+    assert.equal(await page.evaluate(() => window.fakeDisplayCalls.length), 1)
+  })
+})
+
 test("a reload reuses the session instead of creating a second one", async () => {
   await withPage(async ({ page, baseUrl }) => {
     await open(page, baseUrl, "SHARESHARESHARESHARESHAR", "run")

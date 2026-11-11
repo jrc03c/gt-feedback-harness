@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/test/fixtures/build/entry.css" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #e00;
+      }
+      #chrome {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: 120px;
+        height: 40px;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Stands in for the harness's own controls, which must not be in screenshots. -->
+    <div id="chrome" data-harness-chrome></div>
+    <script type="module">
+      import "/test/fixtures/build/entry.js"
+      import { fakeDisplay } from "/test/fixtures/fake-display.js"
+
+      window.fakeDisplay = fakeDisplay
+      window.fixtureReady = true
+    </script>
+  </body>
+</html>

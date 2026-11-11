@@ -103,7 +103,7 @@ export async function runReviewer({
 
   await mountReviewer({
     root,
-    route: { key: resolved.gtKey, mode: route.mode },
+    route: { key: resolved.gtKey, mode: route.mode, capture: route.capture },
     assetBase,
     storage,
     sendFeedback: async item => {

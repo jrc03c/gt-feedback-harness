@@ -12,7 +12,7 @@ Embed a GuidedTrack program, screenshot it, draw on the screenshot, type feedbac
 
 3. On GuidedTrack, open the program's **Publish** page and add the harness URL to the list of pages allowed to run the program. The harness URL is the page's own address, for example `https://<user>.github.io/<repo>/`. Adding it once covers every link.
 
-4. Copy the run link or the test link and send it to reviewers. To address a link to one person, append `&name=` and their name (URL-encoded, so `&name=Bea%20Lee`); the harness fills in the **Your name (optional)** field with it when the run starts, and the reviewer can still change it.
+4. Copy the run link or the test link and send it to reviewers. To address a link to one person, append `&name=` and their name (URL-encoded, so `&name=Bea%20Lee`); the harness fills in the **Your name (optional)** field with it when the run starts, and the reviewer can still change it. To try screenshots through the browser's Screen Capture API instead of the harness's own page redraw, append `&capture=screen`: the browser asks the reviewer once, when they first click **Give feedback**, to share the current tab, and every screenshot in that page load is then a true copy of the screen. On phones, when the reviewer refuses or shares something other than the tab, or when anything else goes wrong, the harness falls back to its usual screenshot, so the link still works everywhere.
 
 Your GitHub username and a Sign out button sit at the top of every developer page. The username links to your account page, where you can delete your account; that removes every program you registered with all its feedback and screenshots, and signing in again afterwards starts a fresh account.
 

@@ -2,6 +2,7 @@ import { mountProgram } from "../gt-embed.js"
 import { createContextTracker } from "../context.js"
 import { createControls } from "../controls.js"
 import { captureViewport } from "../capture.js"
+import { captureScreen } from "../screen-capture.js"
 import { openFeedbackModal } from "../feedback-modal.js"
 import {
   harnessPageUrl,
@@ -25,7 +26,7 @@ export async function mountReviewer({
   sendFeedback,
   assetBase,
   storage = window.localStorage,
-  capture = captureViewport,
+  capture = route.capture === "screen" ? captureScreen : captureViewport,
 }) {
   root.innerHTML = '<div class="harness-program"></div>'
   const programRoot = root.querySelector(".harness-program")

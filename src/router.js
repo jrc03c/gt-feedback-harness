@@ -12,6 +12,8 @@ export function parseRoute(search) {
       shareId,
       mode: params.get("mode") === "test" ? "test" : "run",
       name: value("name"),
+      // capture=screen tries the Screen Capture API before the DOM capture.
+      capture: params.get("capture") === "screen" ? "screen" : "dom",
     }
   }
 

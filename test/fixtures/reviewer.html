@@ -8,6 +8,9 @@
     <div id="app"></div>
     <script type="module">
       import "/test/fixtures/build/entry.js"
+      import { installFakeDisplay } from "/test/fixtures/fake-display.js"
+
+      window.installFakeDisplay = installFakeDisplay
 
       window.sent = []
       window.mount = (
@@ -15,10 +18,11 @@
         mode,
         assetBase = "/test/fixtures/gt-stub",
         capture = undefined,
+        captureMode = "dom",
       ) =>
         window.harness.mountReviewer({
           root: document.getElementById("app"),
-          route: { screen: "reviewer", key, mode },
+          route: { screen: "reviewer", key, mode, capture: captureMode },
           assetBase,
           capture,
           sendFeedback: async item => {

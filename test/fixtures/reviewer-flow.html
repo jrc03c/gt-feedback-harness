@@ -8,6 +8,9 @@
     <div id="app"></div>
     <script type="module">
       import "/test/fixtures/build/entry.js"
+      import { installFakeDisplay } from "/test/fixtures/fake-display.js"
+
+      window.installFakeDisplay = installFakeDisplay
       window.store = window.harness.createFakeStore({
         programs: [
           {
@@ -20,10 +23,10 @@
           },
         ],
       })
-      window.run = (shareId, mode = "test", name = "") =>
+      window.run = (shareId, mode = "test", name = "", capture = "dom") =>
         window.harness.runReviewer({
           root: document.getElementById("app"),
-          route: { screen: "reviewer", shareId, mode, name },
+          route: { screen: "reviewer", shareId, mode, name, capture },
           store: window.store,
           assetBase: "/test/fixtures/gt-stub",
           heartbeatMs: 200,

@@ -52,6 +52,30 @@ test("runs the program and sends feedback with context", async () => {
   })
 })
 
+test("a link with capture=screen screenshots through the Screen Capture API, hiding the harness controls", async () => {
+  await withPage(async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/test/fixtures/reviewer.html`)
+    await page.waitForFunction(() => window.fixtureReady === true)
+    await page.evaluate(() => {
+      window.installFakeDisplay()
+      return window.mount("abc1234", "test", undefined, undefined, "screen")
+    })
+    await page.waitForSelector(".program_container .main p")
+    await page.click(".harness-feedback-button")
+    await page.waitForSelector(".harness-modal img")
+    const pixel = await page.evaluate(async () => {
+      const src = document.querySelector(".harness-modal img").src
+      const blob = await (await fetch(src)).blob()
+      return window.harness.pixelAt(blob, 400, 300)
+    })
+    assert.ok(
+      pixel.g > 180 && pixel.r < 60 && pixel.b < 60,
+      `expected the shared tab's frame with the controls hidden, got ${JSON.stringify(pixel)}`,
+    )
+    assert.equal(await page.evaluate(() => window.fakeDisplayCalls.length), 1)
+  })
+})
+
 test("the context snapshot is taken when the button is clicked, not after capture", async () => {
   await withPage(async ({ page, baseUrl }) => {
     await openReviewer(page, baseUrl, "abc1234", "test")
