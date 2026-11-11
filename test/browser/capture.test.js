@@ -161,43 +161,105 @@ test("a missing font file does not break the capture", async () => {
   })
 })
 
-test("an image the capture cannot fetch is drawn as a gray box of the same size", async () => {
+// Shows the fixture's image from `src` (which the browser can always display)
+// and captures with the given image proxy, returning pixels inside and
+// outside the image's box.
+async function captureRemoteImage(page, src, imageProxy) {
+  const loaded = await page.evaluate(async src => {
+    const img = document.getElementById("remote")
+    img.src = src
+    await img.decode()
+    return img.naturalWidth
+  }, src)
+  assert.equal(loaded, 200, "the browser itself shows the image")
+  return page.evaluate(async imageProxy => {
+    const { captureViewport, pixelAt } = window.harness
+    const r = await captureViewport({ scale: 1, imageProxy })
+    return {
+      inside: await pixelAt(r.blob, 200, 175),
+      corner: await pixelAt(r.blob, 102, 102),
+      outside: await pixelAt(r.blob, 50, 50),
+    }
+  }, imageProxy)
+}
+
+const isGray = pixel =>
+  pixel.r === pixel.g && pixel.g === pixel.b && pixel.r > 200 && pixel.r < 250
+const isRed = pixel => pixel.r > 200 && pixel.g < 60 && pixel.b < 60
+const isWhite = pixel => pixel.r > 250 && pixel.g > 250 && pixel.b > 250
+
+test("an image the capture cannot fetch directly or through the proxy is drawn as a gray box of the same size", async () => {
   const other = await startServer()
   try {
     await withPage(async ({ page, baseUrl }) => {
       await page.goto(`${baseUrl}/test/fixtures/capture-cors.html`)
       await page.waitForFunction(() => window.fixtureReady === true)
-      const loaded = await page.evaluate(async src => {
-        const img = document.getElementById("remote")
-        img.src = src
-        await img.decode()
-        return img.naturalWidth
-      }, `${other.url}/test/fixtures/red.png`)
-      assert.equal(loaded, 200, "the browser itself shows the image")
-      const result = await page.evaluate(async () => {
-        const { captureViewport, pixelAt } = window.harness
-        const r = await captureViewport({ scale: 1 })
-        return {
-          inside: await pixelAt(r.blob, 200, 175),
-          corner: await pixelAt(r.blob, 102, 102),
-          outside: await pixelAt(r.blob, 50, 50),
-        }
-      })
+      const result = await captureRemoteImage(
+        page,
+        `${other.url}/test/fixtures/red.png`,
+        `${other.url}/no-proxy-here`,
+      )
       for (const pixel of [result.inside, result.corner]) {
         assert.ok(
-          pixel.r === pixel.g &&
-            pixel.g === pixel.b &&
-            pixel.r > 200 &&
-            pixel.r < 250,
+          isGray(pixel),
           `expected a gray box, got ${JSON.stringify(pixel)}`,
         )
       }
       assert.ok(
-        result.outside.r > 250 && result.outside.g > 250,
+        isWhite(result.outside),
         `expected white outside, got ${JSON.stringify(result.outside)}`,
       )
     })
   } finally {
     await other.close()
+  }
+})
+
+test("an image the capture cannot fetch directly is fetched through the image proxy", async () => {
+  const other = await startServer()
+  const proxy = await startServer({ proxy: true })
+  try {
+    await withPage(async ({ page, baseUrl }) => {
+      await page.goto(`${baseUrl}/test/fixtures/capture-cors.html`)
+      await page.waitForFunction(() => window.fixtureReady === true)
+      const src = `${other.url}/test/fixtures/red.png`
+      const result = await captureRemoteImage(page, src, `${proxy.url}/proxy`)
+      assert.deepEqual(proxy.requests, [src])
+      for (const pixel of [result.inside, result.corner]) {
+        assert.ok(
+          isRed(pixel),
+          `expected the red image, got ${JSON.stringify(pixel)}`,
+        )
+      }
+      assert.ok(
+        isWhite(result.outside),
+        `expected white outside, got ${JSON.stringify(result.outside)}`,
+      )
+    })
+  } finally {
+    await other.close()
+    await proxy.close()
+  }
+})
+
+test("an image the capture can fetch directly is not sent through the proxy", async () => {
+  const proxy = await startServer({ proxy: true })
+  try {
+    await withPage(async ({ page, baseUrl }) => {
+      await page.goto(`${baseUrl}/test/fixtures/capture-cors.html`)
+      await page.waitForFunction(() => window.fixtureReady === true)
+      const result = await captureRemoteImage(
+        page,
+        `${baseUrl}/test/fixtures/red.png`,
+        `${proxy.url}/proxy`,
+      )
+      assert.deepEqual(proxy.requests, [])
+      assert.ok(
+        isRed(result.inside),
+        `expected the red image, got ${JSON.stringify(result.inside)}`,
+      )
+    })
+  } finally {
+    await proxy.close()
   }
 })

@@ -17,10 +17,32 @@ const TYPES = {
   ".ttf": "font/ttf",
 }
 
-export function startServer() {
+// With `proxy: true` the server also answers /proxy?url=... by fetching that
+// URL itself and returning the bytes with a CORS header, the way a public
+// image proxy does. Every proxied URL is recorded in `requests`.
+export function startServer({ proxy = false } = {}) {
+  const requests = []
   return new Promise(resolve => {
-    const server = http.createServer((request, response) => {
+    const server = http.createServer(async (request, response) => {
       const url = new URL(request.url, "http://localhost")
+
+      if (proxy && url.pathname === "/proxy") {
+        const target = url.searchParams.get("url")
+        requests.push(target)
+        try {
+          const upstream = await fetch(target)
+          if (!upstream.ok) throw new Error(`upstream ${upstream.status}`)
+          response.writeHead(200, {
+            "content-type": upstream.headers.get("content-type"),
+            "access-control-allow-origin": "*",
+          })
+          return response.end(Buffer.from(await upstream.arrayBuffer()))
+        } catch {
+          response.writeHead(502, { "access-control-allow-origin": "*" })
+          return response.end("bad gateway")
+        }
+      }
+
       const file = path.join(ROOT, decodeURIComponent(url.pathname))
 
       if (!file.startsWith(ROOT)) {
@@ -51,6 +73,7 @@ export function startServer() {
       const { port } = server.address()
       resolve({
         url: `http://127.0.0.1:${port}`,
+        requests,
         close: () => new Promise(done => server.close(done)),
       })
     })

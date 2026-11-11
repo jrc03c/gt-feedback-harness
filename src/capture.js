@@ -1,4 +1,5 @@
 import { domToCanvas } from "modern-screenshot"
+import { IMAGE_PROXY_URL, proxiedImageUrl } from "./image-proxy.js"
 
 export const CHROME_SELECTOR = "[data-harness-chrome]"
 
@@ -23,10 +24,9 @@ function forceRelayout(root) {
   void root.offsetWidth
 }
 
-// Drawn in place of an image whose server does not allow cross-origin reads
-// (the capture must fetch every image to inline it). The SVG has no size of
-// its own, so it fills whatever box the image had. See docs/backlog.md for
-// the proxy that would show such images instead.
+// Drawn in place of an image that could be fetched neither directly nor
+// through the image proxy (see src/image-proxy.js). The SVG has no size of
+// its own, so it fills whatever box the image had.
 export const GRAY_BOX =
   "data:image/svg+xml," +
   encodeURIComponent(
@@ -67,11 +67,43 @@ export function loadFontCss(url) {
   return fontCssCache.get(url)
 }
 
+const PROXY_TIMEOUT = 15000
+
+async function fetchAsDataUrl(url, init) {
+  const response = await fetch(url, init)
+  if (!response.ok) throw new Error(`Failed fetch: ${response.status}`)
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
+// How the capture library gets each image: directly first (the library's own
+// default, so images that allow cross-origin reads stay as fast as before),
+// then through the proxy. Throwing makes the library draw the placeholder.
+function imageFetcher(proxy) {
+  return async url => {
+    if (!/^https?:/.test(url)) return false
+    try {
+      return await fetchAsDataUrl(url, { cache: "force-cache" })
+    } catch (error) {
+      if (!proxy) throw error
+    }
+    return fetchAsDataUrl(proxiedImageUrl(url, proxy), {
+      signal: AbortSignal.timeout(PROXY_TIMEOUT),
+    })
+  }
+}
+
 export async function captureViewport({
   scale = Math.min(window.devicePixelRatio || 1, 2),
   exclude = CHROME_SELECTOR,
   quality = 0.85,
   fontsUrl = FONTS_URL,
+  imageProxy = IMAGE_PROXY_URL,
 } = {}) {
   const root = document.documentElement
   const fontCss = await loadFontCss(fontsUrl)
@@ -84,6 +116,7 @@ export async function captureViewport({
     filter: node => !(node instanceof Element && node.matches(exclude)),
     onCloneNode: replaceMedia,
     fetch: { placeholderImage: GRAY_BOX },
+    fetchFn: imageFetcher(imageProxy),
     font: fontCss ? { cssText: fontCss } : undefined,
   })
 
