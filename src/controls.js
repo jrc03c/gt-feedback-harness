@@ -15,6 +15,7 @@ export function createControls({ root, onFeedback, name = null }) {
   `
 
   const button = element.querySelector(".harness-feedback-button")
+  const label = element.querySelector(".harness-feedback-label")
   button.addEventListener("click", () => onFeedback())
 
   if (name) {
@@ -27,8 +28,11 @@ export function createControls({ root, onFeedback, name = null }) {
 
   return {
     element,
+    // Taking the screenshot can take a few seconds on pages with images, so
+    // the button says what it is waiting for.
     setBusy(busy) {
       button.disabled = busy
+      label.textContent = busy ? "Taking screenshot\u2026" : "Give feedback"
     },
     remove() {
       element.remove()

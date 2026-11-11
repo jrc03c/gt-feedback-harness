@@ -150,6 +150,21 @@ test("controls render the feedback button and the name field", async () => {
       await page.locator(".harness-feedback-button:disabled").count(),
       1,
     )
+    assert.match(
+      await page.locator(".harness-feedback-button").innerText(),
+      /Taking screenshot/,
+      "the button says what it is waiting for",
+    )
+
+    await page.evaluate(() => window.controls.setBusy(false))
+    assert.equal(
+      await page.locator(".harness-feedback-button:disabled").count(),
+      0,
+    )
+    assert.match(
+      await page.locator(".harness-feedback-button").innerText(),
+      /Give feedback/,
+    )
   })
 })
 
